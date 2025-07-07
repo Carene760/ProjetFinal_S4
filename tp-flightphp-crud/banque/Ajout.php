@@ -81,8 +81,7 @@
       <option value="1">Sortie</option>
     </select>
 
-    <label for="date_mouvement">Date du mouvement :</label>
-    <input type="date" id="date_mouvement">
+  
 
     <button type="submit">Ajouter le fond</button>
   </form>
@@ -100,9 +99,9 @@
     const etablissement_id = document.getElementById("etablissement_id").value;
     const montant = document.getElementById("montant").value;
     const type_mouvement = document.getElementById("type_mouvement").value;
-    const date_mouvement = document.getElementById("date_mouvement").value;
 
-    const data = `etablissement_id=${etablissement_id}&montant=${montant}&type_mouvement=${type_mouvement}&date_mouvement=${encodeURIComponent(date_mouvement)}`;
+   const data = `etablissement_id=${etablissement_id}&montant=${montant}&type_mouvement=${type_mouvement}`;
+
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", apiBase + "/ajout-fond", true);

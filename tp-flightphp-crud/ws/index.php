@@ -12,13 +12,11 @@ Flight::route('POST /ajout-fond', function() {
     $etablissement_id= $data->etablissement_id;
     $montant = $data->montant;
     $type_mouvement = $data->type_mouvement;
-    $date_mouvement = $data->date_mouvement;
 
     // etablissement_id est toujours 1
-    $stmt = $db->prepare("INSERT INTO fond (etablissement_id, date_mouvement, montant, type_mouvement) VALUES (?, ?, ?, ?)");
+    $stmt = $db->prepare("INSERT INTO fond (etablissement_id, montant, type_mouvement) VALUES (?, ?, ?)");
     $stmt->execute([
        $etablissement_id,
-        $date_mouvement ?: null,
         $montant,
         $type_mouvement
     ]);
