@@ -3,7 +3,7 @@ USE ProjetFinal_S4;
 
 -- Table client
 CREATE TABLE client (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
     prenom VARCHAR(100) NOT NULL,
     email VARCHAR(150),
@@ -14,7 +14,7 @@ CREATE TABLE client (
 
 -- Table type_pret
 CREATE TABLE type_pret (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
     taux_interet DECIMAL(5,2) NOT NULL, -- exemple : 12.5%
     duree_max INT NOT NULL,             -- en mois
@@ -24,7 +24,7 @@ CREATE TABLE type_pret (
 
 -- Table etablissement_financier
 CREATE TABLE etablissement_financier (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE
 );
@@ -32,7 +32,7 @@ CREATE TABLE etablissement_financier (
 -- Table fond
 CREATE TABLE fond (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    etablissement_id INT NOT NULL,
+    etablissement_id INT UNSIGNED NOT NULL,
     date_mouvement DATE DEFAULT CURRENT_DATE,
     montant DECIMAL(18,2) NOT NULL,
     type_mouvement TINYINT(1) NOT NULL, -- 0 = ENTREE, 1 = SORTIE
@@ -45,36 +45,29 @@ CREATE TABLE fond (
 INSERT INTO etablissement_financier (nom, email)
 VALUES ('EF', 'ef@email.com');
 
--- Table type_pret
-CREATE TABLE type_pret (
-    id_type INT AUTO_INCREMENT PRIMARY KEY,
-    nom_type VARCHAR(100) NOT NULL,
-    taux_interet DECIMAL(5,2) NOT NULL, -- en %
-    duree_max INT NOT NULL              -- en mois
-);
-
 -- Table prêt
 CREATE TABLE pret (
     id_pret INT AUTO_INCREMENT PRIMARY KEY,
-    id_client INT NOT NULL,
-    id_type INT NOT NULL,
-    id_ef INT NOT NULL,
+    id_client INT UNSIGNED NOT NULL,
+    id_type INT UNSIGNED NOT NULL,
+    id_ef INT UNSIGNED NOT NULL,
     montant DECIMAL(15,2) NOT NULL,
     duree INT NOT NULL,
     date_debut DATE NOT NULL,
-    date_fin DATE NOT NULL,
     frequence_remboursement ENUM('mensuel', 'trimestriel', 'annuel') NOT NULL,
     statut ENUM('en cours', 'remboursé', 'impayé') DEFAULT 'en cours',
+    pourcentage_assurance DECIMAL(5,2) DEFAULT 0.00,
+    est_valide BOOLEAN DEFAULT FALSE,
     CONSTRAINT fk_client FOREIGN KEY (id_client) REFERENCES client(id),
-    CONSTRAINT fk_type FOREIGN KEY (id_type) REFERENCES type_pret(id_type),
+    CONSTRAINT fk_type FOREIGN KEY (id_type) REFERENCES type_pret(id),
     CONSTRAINT fk_ef FOREIGN KEY (id_ef) REFERENCES etablissement_financier(id)
 );
 
 -- données initiales type_pret
-INSERT INTO type_pret (nom_type, taux_interet, duree_max) VALUES
-('Prêt immobilier', 6.50, 240),     -- 20 ans
-('Prêt automobile', 5.00, 60),      -- 5 ans
-('Prêt personnel', 8.00, 36);       -- 3 ans
+INSERT INTO type_pret (nom, taux_interet, duree_max, montant_max, montant_min) VALUES
+('Prêt immobilier', 6.50, 240, 500000000.00, 10000000.00),     -- 20 ans
+('Prêt automobile', 5.00, 60, 100000000.00, 2000000.00),       -- 5 ans
+('Prêt personnel', 8.00, 36, 50000000.00, 1000000.00);         -- 3 ans
 
 -- données initiales client
 INSERT INTO client (nom, prenom, email, telephone, date_naissance) VALUES

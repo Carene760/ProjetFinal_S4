@@ -30,10 +30,7 @@ class Pret {
             $data->frequence_remboursement, 
             $data->statut ?? 'en cours'
         ]);
-        return [
-            'id_pret' => $db->lastInsertId(),
-            'annuite' => $data->annuite // Assurez-vous que cette valeur est calculée avant
-        ];
+        return $db->lastInsertId();
     }
 
     public static function update($id, $data) {
@@ -67,22 +64,5 @@ class Pret {
         $db = getDB();
         $stmt = $db->prepare("DELETE FROM pret WHERE id_pret = ?");
         $stmt->execute([$id]);
-    }
-
-    public static function getByIdWithDetails($id) {
-        $db = getDB();
-        $stmt = $db->prepare("
-            SELECT p.*, 
-                   t.nom_type, t.taux_interet,
-                   c.nom AS client_nom,
-                   ef.nom AS etablissement_nom
-            FROM pret p
-            JOIN type_pret t ON p.id_type = t.id_type
-            JOIN client c ON p.id_client = c.id
-            JOIN etablissement_financier ef ON p.id_ef = ef.id
-            WHERE p.id_pret = ?
-        ");
-        $stmt->execute([$id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }
