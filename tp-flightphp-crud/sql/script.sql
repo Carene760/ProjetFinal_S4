@@ -6,6 +6,7 @@ CREATE TABLE client (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
     email VARCHAR(150),
+    mot_de_passe VARCHAR(255) NOT NULL, -- hash du mot de passe (ex : bcrypt)
     date_naissance DATE NOT NULL,
     date_inscription DATE DEFAULT CURRENT_DATE
 );
@@ -22,8 +23,11 @@ CREATE TABLE type_pret (
 -- Table etablissement_financier
 CREATE TABLE etablissement_financier (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    nom VARCHAR(100) NOT NULL
+    nom VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    mot_de_passe VARCHAR(255) NOT NULL
 );
+
 
 CREATE TABLE fond (
     id INT AUTO_INCREMENT PRIMARY KEY,
