@@ -12,7 +12,17 @@ CREATE TABLE client (
     date_inscription DATE DEFAULT CURRENT_DATE
 );
 
--- Table établissement financier
+-- Table type_pret
+CREATE TABLE type_pret (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL,
+    taux_interet DECIMAL(5,2) NOT NULL, -- exemple : 12.5%
+    duree_max INT NOT NULL,             -- en mois
+    montant_max DECIMAL(18,2) NOT NULL,
+    montant_min DECIMAL(18,2) NOT NULL 
+);
+
+-- Table etablissement_financier
 CREATE TABLE etablissement_financier (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
