@@ -46,17 +46,19 @@ CREATE TABLE type_pret (
 -- Table prêt
 CREATE TABLE pret (
     id_pret INT AUTO_INCREMENT PRIMARY KEY,
-    id_client INT NOT NULL,
-    id_type INT NOT NULL,
-    id_ef INT NOT NULL,
+    id_client INT UNSIGNED NOT NULL,
+    id_type INT UNSIGNED NOT NULL,
+    id_ef INT UNSIGNED NOT NULL,
     montant DECIMAL(15,2) NOT NULL,
     duree INT NOT NULL,
     date_debut DATE NOT NULL,
-    date_fin DATE NOT NULL,
     frequence_remboursement ENUM('mensuel', 'trimestriel', 'annuel') NOT NULL,
     statut ENUM('en cours', 'remboursé', 'impayé') DEFAULT 'en cours',
+    pourcentage_assurance DECIMAL(5,2) DEFAULT 0.00,
+    est_valide BOOLEAN DEFAULT FALSE,
+    delai_mois INT DEFAULT 0,
     CONSTRAINT fk_client FOREIGN KEY (id_client) REFERENCES client(id),
-    CONSTRAINT fk_type FOREIGN KEY (id_type) REFERENCES type_pret(id_type),
+    CONSTRAINT fk_type FOREIGN KEY (id_type) REFERENCES type_pret(id),
     CONSTRAINT fk_ef FOREIGN KEY (id_ef) REFERENCES etablissement_financier(id)
 );
 

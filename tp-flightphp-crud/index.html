@@ -1,66 +1,184 @@
-<!-- index.php -->
+<?php
+// includes/config.php
+$site_title = "Gestion de Prêts";
+$site_description = "Système professionnel de gestion de prêts bancaires";
+?>
 
+<?php
+// includes/header.php
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Gestion des prêts - Menu principal</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 30px;
-            background-color: #f9f9f9;
-        }
-        h1 {
-            color: #2c3e50;
-        }
-        nav {
-            margin-top: 20px;
-        }
-        nav a {
-            display: inline-block;
-            margin-right: 20px;
-            padding: 10px 20px;
-            background-color: #2980b9;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background-color 0.3s ease;
-        }
-        nav a:hover {
-            background-color: #1f618d;
-        }
-        section {
-            margin-top: 40px;
-            background: white;
-            padding: 20px;
-            border-radius: 6px;
-            box-shadow: 0 0 8px rgba(0,0,0,0.1);
-            max-width: 600px;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo isset($page_title) ? $page_title . " - " . $site_title : $site_title; ?></title>
+    <meta name="description" content="<?php echo $site_description; ?>">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="index.php" class="logo">
+                    <i class="fas fa-university"></i>
+                    <span><?php echo $site_title; ?></span>
+                </a>
+                
+                <nav class="nav">
+                    <div class="nav-item">
+                        <a href="banque/Ajout.php" class="nav-link">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Ajouter un fond</span>
+                        </a>
+                    </div>
+                    <div class="nav-item">
+                        <a href="banque/TypePret.php" class="nav-link">
+                            <i class="fas fa-cogs"></i>
+                            <span>Type de prêt</span>
+                        </a>
+                    </div>
+                    <div class="nav-item">
+                        <a href="banque/pret.html" class="nav-link">
+                            <i class="fas fa-handshake"></i>
+                            <span>Faire un prêt</span>
+                        </a>
+                    </div>
+                    <div class="nav-item">
+                        <a href="banque/rembourser.php" class="nav-link">
+                            <i class="fas fa-credit-card"></i>
+                            <span>Rembourser</span>
+                        </a>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </header>
 
-    <h1>Gestion de prêts - Menu principal</h1>
+<?php
+// includes/footer.php
+?>
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; <?php echo date('Y'); ?> <?php echo $site_title; ?>. Tous droits réservés.</p>
+            <p>Système professionnel de gestion de prêts bancaires</p>
+        </div>
+    </footer>
 
-    <nav>
-        <a href="banque/Ajout.php">Ajouter un fond</a>
-        <a href="banque/TypePret.php">Créer un type de prêt</a>
-        <a href="banque/pret.html">Faire un prêt</a>
-        <a href="banque/rembourser.php">Rembourser un prêt</a>
-    </nav>
-
-    <section>
-        <h2>Bienvenue sur le système de gestion de prêts</h2>
-        <p>Utilisez le menu ci-dessus pour accéder aux différentes fonctionnalités :</p>
-        <ul>
-            <li><strong>Ajouter un fond :</strong> Gérer les fonds disponibles pour l’établissement financier.</li>
-            <li><strong>Créer un type de prêt :</strong> Définir les types de prêts avec leurs taux d’intérêt et durées.</li>
-            <li><strong>Faire un prêt :</strong> Enregistrer un nouveau prêt pour un client.</li>
-            <li><strong>Rembourser un prêt :</strong> Enregistrer un paiement de mensualité.</li>
-        </ul>
-    </section>
-
+    <!-- Custom JavaScript -->
+    <script src="assets/js/script.js"></script>
 </body>
 </html>
+
+<?php
+// index.php
+include 'includes/config.php';
+$page_title = "Accueil";
+include 'includes/header.php';
+?>
+
+<main class="main">
+    <div class="container">
+        <section class="hero">
+            <h1>Système de Gestion de Prêts</h1>
+            <p>Plateforme professionnelle pour la gestion complète de vos prêts bancaires et financiers</p>
+        </section>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <h3>Gestion des Fonds</h3>
+                <p>Gérez efficacement les fonds disponibles de votre établissement financier avec un suivi en temps réel.</p>
+                <a href="banque/Ajout.php" class="btn btn-primary" style="margin-top: 1rem;">
+                    <i class="fas fa-plus"></i>
+                    Ajouter un fond
+                </a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <h3>Types de Prêts</h3>
+                <p>Créez et configurez différents types de prêts avec leurs taux d'intérêt et conditions spécifiques.</p>
+                <a href="banque/TypePret.php" class="btn btn-primary" style="margin-top: 1rem;">
+                    <i class="fas fa-cogs"></i>
+                    Configurer
+                </a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-handshake"></i>
+                </div>
+                <h3>Octroi de Prêts</h3>
+                <p>Enregistrez rapidement de nouveaux prêts pour vos clients avec toutes les informations nécessaires.</p>
+                <a href="banque/pret.html" class="btn btn-primary" style="margin-top: 1rem;">
+                    <i class="fas fa-plus-circle"></i>
+                    Nouveau prêt
+                </a>
+            </div>
+
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <h3>Remboursements</h3>
+                <p>Suivez et enregistrez les paiements de mensualités avec un système de tracking automatique.</p>
+                <a href="banque/rembourser.php" class="btn btn-primary" style="margin-top: 1rem;">
+                    <i class="fas fa-money-check"></i>
+                    Rembourser
+                </a>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top: 3rem;">
+            <div class="card-header">
+                <h2>
+                    <i class="fas fa-info-circle"></i>
+                    Fonctionnalités Principales
+                </h2>
+            </div>
+            <div class="card-body">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
+                    <div>
+                        <h4 style="color: var(--primary-color); margin-bottom: 0.5rem;">
+                            <i class="fas fa-shield-alt"></i> Sécurité
+                        </h4>
+                        <p>Système sécurisé avec authentification et protection des données financières.</p>
+                    </div>
+                    <div>
+                        <h4 style="color: var(--success-color); margin-bottom: 0.5rem;">
+                            <i class="fas fa-chart-line"></i> Rapports
+                        </h4>
+                        <p>Génération automatique de rapports détaillés sur les prêts et remboursements.</p>
+                    </div>
+                    <div>
+                        <h4 style="color: var(--warning-color); margin-bottom: 0.5rem;">
+                            <i class="fas fa-bell"></i> Notifications
+                        </h4>
+                        <p>Alertes automatiques pour les échéances et les retards de paiement.</p>
+                    </div>
+                    <div>
+                        <h4 style="color: var(--danger-color); margin-bottom: 0.5rem;">
+                            <i class="fas fa-mobile-alt"></i> Responsive
+                        </h4>
+                        <p>Interface adaptée à tous les appareils pour une utilisation optimale.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<?php include 'includes/footer.php'; ?>
