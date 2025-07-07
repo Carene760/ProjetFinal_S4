@@ -82,6 +82,7 @@
             <td>
               <button onclick='remplirFormulaire(${JSON.stringify(p)})'>✏️</button>
               <button onclick='supprimerPret(${p.id_pret})'>🗑️</button>
+              <a href='details_pret.html?id=${p.id_pret}' style='margin-left:5px'>👁️</a>
             </td>
           `;
           tbody.appendChild(tr);
@@ -94,27 +95,52 @@
       const id_client = document.getElementById("id_client").value;
       const id_type = document.getElementById("id_type").value;
       const id_ef = document.getElementById("id_ef").value;
-      const montant = document.getElementById("montant").value;
-      const duree = document.getElementById("duree").value;
+      const montant = parseFloat(document.getElementById("montant").value);
+      const duree = parseInt(document.getElementById("duree").value);
       const date_debut = document.getElementById("date_debut").value;
       const date_fin = document.getElementById("date_fin").value;
-      const frequence_remboursement = document.getElementById("frequence_remboursement").value;
-      const statut = document.getElementById("statut").value;
+      const frequence = document.getElementById("frequence_remboursement").value;
 
-      const data = `id_client=${id_client}&id_type=${id_type}&id_ef=${id_ef}&montant=${montant}&duree=${duree}&date_debut=${date_debut}&date_fin=${date_fin}&frequence_remboursement=${frequence_remboursement}&statut=${statut}`;
+      const data = {
+          id_client, id_type, id_ef, montant, duree,
+          date_debut, date_fin, frequence_remboursement: frequence
+      };
 
-      if (id_pret) {
-        ajax("PUT", `/prets/${id_pret}`, data, () => {
-          resetForm();
-          chargerPrets();
-        });
+      // Vérification des fonds avant création
+      if (!id_pret) {
+          fetch(apiBase + "/fond-actuel")
+              .then(response => response.json())
+              .then(result => {
+                  if (montant > result.fond_actuel) {
+                      alert(`Fonds insuffisants!\nFond disponible: ${result.fond_actuel} Ar\nMontant demandé: ${montant} Ar`);
+                      return;
+                  }
+                  createPret(data);
+              })
+              .catch(error => {
+                  console.error("Erreur:", error);
+                  alert("Erreur lors de la vérification des fonds");
+              });
       } else {
-        ajax("POST", "/prets", data, () => {
+          updatePret(id_pret, data);
+      }
+  }
+
+  function createPret(data) {
+      ajax("POST", "/prets", data, (response) => {
+          alert(`Prêt créé!\nAnnuité: ${response.annuite.toFixed(2)} Ar\nFond restant: ${response.fond_restant.toFixed(2)} Ar`);
           resetForm();
           chargerPrets();
-        });
-      }
-    }
+      });
+  }
+
+  function updatePret(id, data) {
+      ajax("PUT", `/prets/${id}`, data, () => {
+          alert("Prêt modifié avec succès!");
+          resetForm();
+          chargerPrets();
+      });
+  }
 
     function remplirFormulaire(p) {
       document.getElementById("id_pret").value = p.id_pret;
@@ -127,14 +153,6 @@
       document.getElementById("date_fin").value = p.date_fin;
       document.getElementById("frequence_remboursement").value = p.frequence_remboursement;
       document.getElementById("statut").value = p.statut;
-    }
-
-    function supprimerPret(id) {
-      if (confirm("Supprimer ce prêt ?")) {
-        ajax("DELETE", `/prets/${id}`, null, () => {
-          chargerPrets();
-        });
-      }
     }
 
     function resetForm() {

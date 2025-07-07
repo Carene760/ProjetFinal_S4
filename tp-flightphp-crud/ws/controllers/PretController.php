@@ -1,76 +1,85 @@
 <?php
+require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../models/Pret.php';
 
 class PretController {
     public static function getAll() {
         $prets = Pret::getAll();
-        // Calcul de l'annuité pour chaque prêt
-        foreach ($prets as &$pret) {
-            $pret['annuite'] = self::calculerAnnuite($pret);
-        }
         Flight::json($prets);
     }
 
     public static function getById($id) {
         $pret = Pret::getById($id);
-        $pret['annuite'] = self::calculerAnnuite($pret);
         Flight::json($pret);
     }
 
     public static function create() {
-        $data = Flight::request()->data;
-        
-        // Vérification des fonds disponibles
-        $fondActuel = self::getFondActuel();
-        if ($data->montant > $fondActuel) {
-            Flight::json(['error' => 'Fonds insuffisants. Fonds disponibles: ' . $fondActuel], 400);
-            return;
-        }
-        
-        $id = Pret::create($data);
-        $pret = Pret::getById($id);
-        $pret['annuite'] = self::calculerAnnuite($pret);
-        
-        Flight::json([
-            'message' => 'Prêt ajouté',
-            'id' => $id,
-            'annuite' => $pret['annuite']
-        ]);
+    $db = getDB();
+    $data = Flight::request()->data;
+    
+    // Vérification des fonds disponibles
+    $fondActuel = self::getFondActuel();
+    if ($data->montant > $fondActuel) {
+        Flight::halt(400, json_encode([
+            'message' => 'Fonds insuffisants',
+            'fond_actuel' => $fondActuel,
+            'montant_demande' => $data->montant
+        ]));
     }
 
-    private static function calculerAnnuite($pret) {
-        $montant = $pret['montant'];
-        $duree = $pret['duree'];
-        $tauxAnnuel = 5; // Taux d'intérêt par défaut (à adapter)
+    // Récupération du taux d'intérêt
+    $typePret = TypePret::getById($data->id_type);
+    if (!$typePret) {
+        Flight::halt(404, 'Type de prêt non trouvé');
+    }
+
+    // Calcul de l'annuité
+    $annuite = self::calculerAnnuite(
+        $data->montant,
+        $typePret['taux_interet'],
+        $data->duree,
+        $data->frequence_remboursement
+    );
+
+    try {
+        $db->beginTransaction();
+
+        // Création du prêt
+        $idPret = Pret::create($data);
         
-        // Conversion selon la fréquence de remboursement
-        switch ($pret['frequence_remboursement']) {
-            case 'mensuel':
-                $periodesParAn = 12;
-                break;
-            case 'trimestriel':
-                $periodesParAn = 4;
-                break;
-            case 'annuel':
-                $periodesParAn = 1;
-                break;
-            default:
-                $periodesParAn = 12;
-        }
-        
+        // Création du mouvement de fond (sortie)
+        $stmt = $db->prepare("INSERT INTO fond (etablissement_id, montant, type_mouvement) VALUES (1, ?, 1)");
+        $stmt->execute([$data->montant]);
+
+        $db->commit();
+
+        Flight::json([
+            'message' => 'Prêt créé avec succès',
+            'id_pret' => $idPret,
+            'annuite' => $annuite,
+            'fond_restant' => $fondActuel - $data->montant
+        ]);
+    } catch (Exception $e) {
+        $db->rollBack();
+        Flight::halt(500, 'Erreur lors de la création du prêt: ' . $e->getMessage());
+    }
+}
+
+    private static function calculerAnnuite($montant, $tauxAnnuel, $duree, $frequence) {
+        $periodesParAn = self::getPeriodesParAn($frequence);
         $n = $duree * $periodesParAn;
         $i = $tauxAnnuel / 100 / $periodesParAn;
-        
-        if ($i == 0) return $montant / $n; // Cas sans intérêts
-        
+
         return ($montant * $i) / (1 - pow(1 + $i, -$n));
     }
 
-    private static function getFondActuel() {
-        $result = Flight::request()
-            ->curl('http://localhost/api/fond-actuel')
-            ->get()
-            ->json();
-        return $result['fond_actuel'];
+    private static function getPeriodesParAn($frequence) {
+        switch ($frequence) {
+            case 'mensuel': return 12;
+            case 'trimestriel': return 4;
+            case 'annuel': return 1;
+            default: return 12;
+        }
     }
+
 }
