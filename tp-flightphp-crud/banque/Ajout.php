@@ -151,7 +151,7 @@
     xhr.send();
   }
 
-  window.onload = chargerFondActuel;
+  window.onload = chargerFondActuel();
 </script>
 
 </body>
