@@ -30,10 +30,11 @@ class Pret {
             $data->frequence_remboursement, 
             $data->statut ?? 'en cours'
         ]);
-        return $db->lastInsertId();
+        return [
+            'id_pret' => $db->lastInsertId(),
+            'annuite' => $data->annuite // Assurez-vous que cette valeur est calculée avant
+        ];
     }
-
-
 
     public static function update($id, $data) {
         $db = getDB();

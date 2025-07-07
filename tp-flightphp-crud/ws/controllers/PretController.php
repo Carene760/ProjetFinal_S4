@@ -18,7 +18,7 @@ class PretController {
     $data = Flight::request()->data;
     
     // Vérification des fonds disponibles
-    $fondActuel = self::getFondActuel();
+    $fondActuel = $db->query("SELECT COALESCE(SUM(CASE WHEN type_mouvement = 0 THEN montant ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN type_mouvement = 1 THEN montant ELSE 0 END), 0) AS fond_actuel FROM fond WHERE etablissement_id = 1")->fetchColumn();
     if ($data->montant > $fondActuel) {
         Flight::halt(400, json_encode([
             'message' => 'Fonds insuffisants',
@@ -43,16 +43,16 @@ class PretController {
 
     try {
         $db->beginTransaction();
-
+    
         // Création du prêt
         $idPret = Pret::create($data);
         
         // Création du mouvement de fond (sortie)
         $stmt = $db->prepare("INSERT INTO fond (etablissement_id, montant, type_mouvement) VALUES (1, ?, 1)");
         $stmt->execute([$data->montant]);
-
+    
         $db->commit();
-
+    
         Flight::json([
             'message' => 'Prêt créé avec succès',
             'id_pret' => $idPret,
@@ -61,7 +61,7 @@ class PretController {
         ]);
     } catch (Exception $e) {
         $db->rollBack();
-        Flight::halt(500, 'Erreur lors de la création du prêt: ' . $e->getMessage());
+        Flight::halt(500, json_encode(['message' => 'Erreur lors de la création du prêt: ' . $e->getMessage()]));
     }
 }
 
