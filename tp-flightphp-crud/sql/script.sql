@@ -39,7 +39,7 @@ CREATE TABLE fond (
 
 
 INSERT INTO etablissement_financier (nom)
-VALUES ('Banque MADA');  -- 100 millions d’ariary
+VALUES ('EF');
 
 
 CREATE TABLE type_pret (
