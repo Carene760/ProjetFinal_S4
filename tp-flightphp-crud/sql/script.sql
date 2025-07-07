@@ -50,7 +50,7 @@ CREATE TABLE type_pret (
     id_type INT AUTO_INCREMENT PRIMARY KEY,
     nom_type VARCHAR(100) NOT NULL,
     taux_interet DECIMAL(5, 2) NOT NULL, -- ex: 5.5%
-    duree_mois INT NOT NULL -- durée standard du prêt
+    duree_max INT NOT NULL -- durée standard du prêt
 );
 -- Table des prêts accordés
 CREATE TABLE pret (
@@ -59,14 +59,13 @@ CREATE TABLE pret (
     id_type INT REFERENCES type_pret(id_type),
     id_ef INT REFERENCES etablissement_financier(id_ef),
     montant DECIMAL(15, 2) NOT NULL,
+    duree INT NOT NULL,
     date_debut DATE NOT NULL,
     frequence_remboursement ENUM('mensuel', 'trimestriel', 'annuel'),
-    montant_remboursement DECIMAL(15,2),
-    est_rembourse BOOLEAN DEFAULT FALSE
+    statut ENUM('en cours', 'remboursé', 'impayé') DEFAULT 'en cours'
 );
 
-
-INSERT INTO type_pret (nom_type, taux_interet, duree_mois)
+INSERT INTO type_pret (nom_type, taux_interet, duree_max)
 VALUES 
 ('Prêt immobilier', 6.50, 240),     -- 20 ans
 ('Prêt automobile', 5.00, 60),      -- 5 ans
