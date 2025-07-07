@@ -62,10 +62,8 @@ CREATE TABLE pret (
     duree INT NOT NULL,
     date_debut DATE NOT NULL,
     frequence_remboursement ENUM('mensuel', 'trimestriel', 'annuel'),
-    statut ENUM('en cours', 'remboursé', 'impayé') DEFAULT 'en cours'
-);
-
-INSERT INTO type_pret (nom_type, taux_interet, duree_max)
+    statut ENUM('en cours', 'remboursé', 'impayé') DEFAULT 'en cours',
+    est_valide BOOLEAN DEFAULT FALSE
 VALUES 
 ('Prêt immobilier', 6.50, 240),     -- 20 ans
 ('Prêt automobile', 5.00, 60),      -- 5 ans
