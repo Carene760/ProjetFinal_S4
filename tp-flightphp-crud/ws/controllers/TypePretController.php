@@ -32,6 +32,27 @@ class TypePretController {
         TypePret::delete($id);
         Flight::json(['message' => 'Type de prêt supprimé']);
     }
+
+      public static function getAllClients() {
+
+        $clients = TypePret::getAllClient();
+        Flight::json($clients);
+    
+    }
+
+    public static function voirPretsClient($idClient) {
+        $prets = TypePret::getEcheancesNonPayeesParClient($idClient);
+
+        foreach ($prets as &$pret) {
+            $pret['echeances'] = Echeance::getEcheancesNonPayeesParPret($pret['id_pret']);
+        }
+
+        // On pourrait utiliser un moteur de template (ex: Twig, Blade, etc.)
+        // Ou inclure un fichier PHP simple pour afficher
+        require __DIR__ . '/../views/voir_pret.php';
+    }
+  
+
 }
 
 ?>

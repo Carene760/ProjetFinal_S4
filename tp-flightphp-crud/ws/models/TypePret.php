@@ -22,6 +22,24 @@ class TypePret {
         return $db->lastInsertId();
     }
 
+    public static function getEcheancesNonPayeesParClient($idClient) {
+    $db = getDB();
+    $stmt = $db->prepare("
+        SELECT e.*
+        FROM echeance_remboursement e
+        JOIN pret p ON e.id_pret =getAllClient p.id_pret
+        WHERE p.id_client = ? AND e.statut_paiement = 'non payé'
+    ");
+    $stmt->execute([$idClient]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public static function getAllClient() {
+        $db = getDB();
+        $stmt = $db->query("SELECT * FROM client");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public static function update($id, $data) {
         $db = getDB();
         $stmt = $db->prepare("UPDATE type_pret SET nom = ?, taux_interet = ?, duree_max = ?, montant_max = ?, montant_min = ? WHERE id = ?");
