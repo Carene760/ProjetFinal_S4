@@ -134,12 +134,32 @@
       </thead>
       <tbody></tbody>
     </table>
+
+    <div class="info-card" id="assurance-section">
+      <h3>Assurance</h3>
+      <p><strong>Taux assurance:</strong> <span id="taux-assurance"></span>%</p>
+      <p><strong>Montant assurance:</strong> <span id="montant-assurance"></span> Ar</p>
+    </div>
+    
+    <div class="info-card" id="delai-section" style="display:none;">
+        <h3>Période de Délai</h3>
+        <p><strong>Durée:</strong> <span id="delai-duree"></span> mois</p>
+        <p><strong>Paiement des intérêts seulement</strong></p>
+    </div>
+    
+    <!-- Bouton de validation -->
+    <div style="text-align: center; margin-top: 30px;">
+        <button id="btn-valider" class="btn-valider" style="padding: 10px 20px; background-color: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer;">
+            Valider le Prêt
+        </button>
+        <p id="message-validation" style="margin-top: 10px;"></p>
+    </div>
   </div>
 
   <script>
     const apiBase = "http://localhost/S4/ProjetFinal_S4_/tp-flightphp-crud/ws";
     const pretId = new URLSearchParams(window.location.search).get('id');
-
+    console.log("ID du prêt:", pretId); // Ajoutez ce log
     // Fonction pour formater les nombres
     function formatNumber(num) {
       return new Intl.NumberFormat('fr-FR').format(num);
@@ -220,20 +240,78 @@
         `;
         tbody.appendChild(tr);
       });
+
+      document.getElementById('taux-assurance').textContent = pret.taux_assurance || '0';
+      document.getElementById('montant-assurance').textContent = formatNumber(pret.assurance || 0);
+
+      // Afficher les infos délai si applicable
+      if(pret.delai_mois > 0) {
+          document.getElementById('delai-section').style.display = 'block';
+          document.getElementById('delai-duree').textContent = pret.delai_mois;
+      }
+
+      // Gestion du bouton de validation
+      const btnValider = document.getElementById('btn-valider');
+      const messageValidation = document.getElementById('message-validation');
+      
+      if(pret.is_valide) {
+          btnValider.disabled = true;
+          btnValider.textContent = 'Prêt déjà validé';
+          messageValidation.textContent = 'Ce prêt a déjà été validé et est en cours.';
+      } else {
+          btnValider.onclick = function() {
+              if(confirm('Êtes-vous sûr de vouloir valider ce prêt ?')) {
+                  validerPret(pret.id_pret);
+              }
+          };
+      }
     }
+
+    function validerPret(idPret) {
+      const btnValider = document.getElementById('btn-valider');
+      btnValider.disabled = true;
+      
+      fetch(`${apiBase}/prets/${idPret}/valider`, {
+          method: 'POST'
+      })
+      .then(response => response.json())
+      .then(data => {
+          if(data.success) {
+              document.getElementById('message-validation').textContent = data.message;
+              document.getElementById('btn-valider').textContent = 'Prêt validé';
+              document.getElementById('statut').textContent = 'validé';
+              document.getElementById('statut').className = 'statut-rembourse';
+          } else {
+              alert('Erreur: ' + data.message);
+              btnValider.disabled = false;
+          }
+      })
+      .catch(error => {
+          console.error('Erreur:', error);
+          alert('Une erreur est survenue');
+          btnValider.disabled = false;
+      });
+  }
 
     // Charger les données du prêt
     function chargerDetailsPret() {
-      fetch(`${apiBase}/banque/prets/${pretId}`)
-        .then(response => response.json())
+    console.log("Tentative de chargement du prêt", pretId);
+    fetch(`${apiBase}/prets/${pretId}`)
+        .then(response => {
+            if(!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(pret => {
-          afficherDetailsPret(pret);
+            console.log("Données reçues:", pret);
+            afficherDetailsPret(pret);
         })
         .catch(error => {
-          console.error('Erreur:', error);
-          alert('Impossible de charger les détails du prêt');
+            console.error('Erreur complète:', error);
+            alert(`Erreur détaillée: ${error.message}`);
         });
-    }
+}
 
     // Démarrer le chargement des données
     if (pretId) {

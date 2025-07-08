@@ -23,7 +23,6 @@
     <input type="number" id="montant" placeholder="Montant" step="0.01">
     <input type="number" id="duree" placeholder="Durée (mois)">
     <input type="date" id="date_debut" placeholder="Date début">
-    <input type="date" id="date_fin" placeholder="Date fin">
     <select id="frequence_remboursement">
       <option value="mensuel">Mensuel</option>
       <option value="trimestriel">Trimestriel</option>
@@ -34,6 +33,9 @@
       <option value="remboursé">Remboursé</option>
       <option value="impayé">Impayé</option>
     </select>
+    <input type="number" id="pourcentage_assurance" placeholder="Pourcentage assurance (%)" step="0.01">
+    <input type="number" id="delai_mois" placeholder="delai (mois)">  
+    <input type="hidden" name="est_valide" id="est_valide" value="FALSE">
     <button onclick="ajouterOuModifier()">Ajouter / Modifier</button>
   </div>
 
@@ -41,7 +43,7 @@
     <thead>
       <tr>
         <th>ID</th><th>Client</th><th>Type</th><th>Étab. Fin.</th><th>Montant</th>
-        <th>Durée</th><th>Début</th><th>Fin</th><th>Fréquence</th><th>Statut</th><th>Actions</th>
+        <th>Durée</th><th>Début</th><th>Fréquence</th><th>Statut</th><th>Assurance</th><th>Delai</th><th>est_valide</th><th>Actions</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -53,14 +55,19 @@
     function ajax(method, url, data, callback) {
       const xhr = new XMLHttpRequest();
       xhr.open(method, apiBase + url, true);
-      xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+      xhr.setRequestHeader("Content-Type", "application/json"); // Utilisation de JSON
       xhr.onreadystatechange = () => {
-        if (xhr.readyState === 4 && xhr.status === 200) {
-          callback(JSON.parse(xhr.responseText));
-        }
+          if (xhr.readyState === 4) {
+              if (xhr.status === 200) {
+                  callback(JSON.parse(xhr.responseText));
+              } else {
+                  console.error("Erreur:", xhr.responseText);
+                  alert("Erreur lors de la requête : " + xhr.responseText);
+              }
+          }
       };
-      xhr.send(data);
-    }
+      xhr.send(JSON.stringify(data)); // Conversion en JSON
+  }
 
     function chargerPrets() {
       ajax("GET", "/prets", null, (data) => {
@@ -76,12 +83,15 @@
             <td>${p.montant}</td>
             <td>${p.duree}</td>
             <td>${p.date_debut}</td>
-            <td>${p.date_fin}</td>
             <td>${p.frequence_remboursement}</td>
             <td>${p.statut}</td>
+            <td>${p.pourcentage_assurance}</td>
+            <td>${p.delai_mois}</td>
+            <td>${p.est_valide}</td>
             <td>
               <button onclick='remplirFormulaire(${JSON.stringify(p)})'>✏️</button>
               <button onclick='supprimerPret(${p.id_pret})'>🗑️</button>
+              <a href="details_pret.html?id=${p.id_pret}" style="margin-left:5px">👁️</a>
             </td>
           `;
           tbody.appendChild(tr);
@@ -97,11 +107,25 @@
       const montant = document.getElementById("montant").value;
       const duree = document.getElementById("duree").value;
       const date_debut = document.getElementById("date_debut").value;
-      const date_fin = document.getElementById("date_fin").value;
       const frequence_remboursement = document.getElementById("frequence_remboursement").value;
       const statut = document.getElementById("statut").value;
+      const pourcentage_assurance = document.getElementById("pourcentage_assurance").value;
+      const delai_mois= document.getElementById("delai_mois").value;
+      const est_valide = document.getElementById("est_valide").value;
 
-      const data = `id_client=${id_client}&id_type=${id_type}&id_ef=${id_ef}&montant=${montant}&duree=${duree}&date_debut=${date_debut}&date_fin=${date_fin}&frequence_remboursement=${frequence_remboursement}&statut=${statut}`;
+      const data = {
+          id_client,
+          id_type,
+          id_ef,
+          montant,
+          duree,
+          date_debut,
+          frequence_remboursement,
+          statut,
+          pourcentage_assurance,
+          delai_mois,
+          est_valide
+      };      
 
       if (id_pret) {
         ajax("PUT", `/prets/${id_pret}`, data, () => {
@@ -124,9 +148,11 @@
       document.getElementById("montant").value = p.montant;
       document.getElementById("duree").value = p.duree;
       document.getElementById("date_debut").value = p.date_debut;
-      document.getElementById("date_fin").value = p.date_fin;
       document.getElementById("frequence_remboursement").value = p.frequence_remboursement;
       document.getElementById("statut").value = p.statut;
+      document.getElementById("pourcentage_assurance").value = p.pourcentage_assurance;
+      document.getElementById("delai_mois").value = p.delai_mois;
+      document.getElementById("est_valide").value = p.est_valide;
     }
 
     function supprimerPret(id) {
@@ -145,9 +171,11 @@
       document.getElementById("montant").value = "";
       document.getElementById("duree").value = "";
       document.getElementById("date_debut").value = "";
-      document.getElementById("date_fin").value = "";
       document.getElementById("frequence_remboursement").value = "mensuel";
       document.getElementById("statut").value = "en cours";
+      document.getElementById("pourcentage_assurance").value = "";
+      document.getElementById("delai_mois").value = "";
+      document.getElementById("est_valide").value = "FALSE";
     }
 
     chargerPrets();

@@ -58,8 +58,9 @@ CREATE TABLE pret (
     statut ENUM('en cours', 'remboursé', 'impayé') DEFAULT 'en cours',
     pourcentage_assurance DECIMAL(5,2) DEFAULT 0.00,
     est_valide BOOLEAN DEFAULT FALSE,
+    delai_mois INT DEFAULT 0,
     CONSTRAINT fk_client FOREIGN KEY (id_client) REFERENCES client(id),
-    CONSTRAINT fk_type FOREIGN KEY (id_type) REFERENCES type_pret(id),
+    CONSTRAINT fk_type FOREIGN KEY (id_type) REwFERENCES type_pret(id),
     CONSTRAINT fk_ef FOREIGN KEY (id_ef) REFERENCES etablissement_financier(id)
 );
 
