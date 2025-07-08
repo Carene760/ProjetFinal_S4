@@ -317,4 +317,16 @@ class PretController {
         Pret::delete($id);
         Flight::json(['message' => 'Prêt supprimé']);
     }
+    public static function getInteretsMensuels() {
+        $idEf = Flight::request()->query['id_ef'];
+        $debut = Flight::request()->query['debut']; 
+        $fin = Flight::request()->query['fin'];     
+        if (!$idEf || !$debut || !$fin) {
+            Flight::json(['error' => 'Paramètres manquants (id_ef, debut, fin)'], 400);
+            return;
+        }
+
+        $resultats = Pret::getInteretsMensuels($idEf, $debut, $fin);
+        Flight::json($resultats);
+    }
 }
