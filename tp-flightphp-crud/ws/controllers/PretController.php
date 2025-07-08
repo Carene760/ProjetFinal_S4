@@ -49,124 +49,133 @@ class PretController {
             $data->frequence_remboursement
         );
 
-        // Génération du tableau d'amortissement avec délai
-        $tableauAmortissement = self::genererTableauAmortissement(
-            $data->montant,
-            $type['taux_interet'],
-            $data->duree,
-            $annuite,
-            $data->date_debut,
-            $data->delai_mois ?? 0
-        );
-
-        try {
-            $id = Pret::create($data);
-            
-            Flight::json([
-                'success' => true,
-                'id_pret' => $id,
-                'details' => [
-                    'montant' => $data->montant,
-                    'duree' => $data->duree,
-                    'taux_interet' => $type['taux_interet'],
-                    'taux_assurance' => $type['taux_assurance'] ?? 1,
-                    'frequence' => $data->frequence_remboursement,
-                    'date_debut' => $data->date_debut,
-                    'date_fin' => $data->date_debut + $data->duree + $data->delai_mois,
-                    'annuite' => $annuite,
-                    'assurance' => $assurance,
-                    'total_remboursement' => $annuite * $data->duree,
-                    'delai_mois' => $data->delai_mois ?? 0,
-                    'tableau_amortissement' => $tableauAmortissement,
-                    'is_valide' => false
-                ]
-            ]);
-        } catch (Exception $e) {
-            Flight::json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+        $id = Pret::create($data);
+        Flight::json($id);
     }
 
-    private static function genererTableauAmortissement($montant, $taux, $duree, $annuite, $dateDebut, $delaiMois = 0) {
-        $tableau = [];
-        $capitalRestant = $montant;
-        $tauxMensuel = $taux / 100 / 12;
-        $date = new DateTime($dateDebut);
-
-        // Période de délai (paiement des intérêts seulement)
-        for ($periode = 1; $periode <= $delaiMois; $periode++) {
-            $interet = $capitalRestant * $tauxMensuel;
-            $date->add(new DateInterval('P1M'));
-
-            $tableau[] = [
-                'periode' => $periode,
-                'date' => $date->format('Y-m-d'),
-                'capital_restant' => $capitalRestant,
-                'interet' => $interet,
-                'capital' => 0,
-                'annuite' => $interet, // Seulement les intérêts
-                'statut' => 'À payer',
-                'phase' => 'delai'
-            ];
-        }
-
-        // Période de remboursement normal
-        for ($periode = $delaiMois + 1; $periode <= $duree + $delaiMois; $periode++) {
-            $interet = $capitalRestant * $tauxMensuel;
-            $capital = $annuite - $interet;
-            $capitalRestant -= $capital;
-            $date->add(new DateInterval('P1M'));
-
-            $tableau[] = [
-                'periode' => $periode,
-                'date' => $date->format('Y-m-d'),
-                'capital_restant' => max(0, $capitalRestant),
-                'interet' => $interet,
-                'capital' => $capital,
-                'annuite' => $annuite,
-                'statut' => 'À payer',
-                'phase' => 'remboursement'
-            ];
-        }
-
-        return $tableau;
-    }
-
-    public static function getByIdWithDetails($id) {
+    // Ajoutez cette méthode dans la classe PretController
+    public static function getDetailsPret($id) {
         $pret = Pret::getById($id);
-        if(!$pret) {
-            Flight::halt(404, json_encode(['message' => 'Prêt non trouvé']));
+        
+        if (!$pret) {
+            Flight::json(['message' => 'Prêt non trouvé'], 404);
+            return;
         }
-    
+
+        $type = TypePret::getById($pret['id_type']);
+        $fond_actuel = Fond::getFondActuelParEtablissement($pret['id_ef']);
+        
         // Calcul des éléments financiers
-        $pret['annuite'] = self::calculerAnnuite(
+        $annuite = self::calculerAnnuite(
             $pret['montant'],
-            $pret['taux_interet'],
+            $type['taux_interet'],
             $pret['duree'],
             $pret['frequence_remboursement']
         );
-    
-        $pret['assurance'] = self::calculerAssurance(
+
+        $assurance = self::calculerAssurance(
             $pret['montant'],
-            $pret['taux_assurance'] ?? 1,
+            $pret['pourcentage_assurance'] ?? 0,
             $pret['frequence_remboursement']
         );
-    
-        $pret['tableau_amortissement'] = self::genererTableauAmortissement(
+
+        // Calcul des dates
+        $date_debut = new DateTime($pret['date_debut']);
+        $date_fin = clone $date_debut;
+        $date_fin->add(new DateInterval('P' . ($pret['duree'] + ($pret['delai_mois'] ?? 0)) . 'M'));
+
+        // Tableau d'amortissement
+        $tableau_amortissement = self::calculerTableauAmortissement(
             $pret['montant'],
-            $pret['taux_interet'],
+            $type['taux_interet'],
             $pret['duree'],
-            $pret['annuite'],
-            $pret['date_debut'],
-            $pret['delai_mois'] ?? 0
+            $pret['frequence_remboursement'],
+            $pret['delai_mois'] ?? 0,
+            $date_debut,
+            $assurance
         );
+
+        $response = [
+            'pret' => [
+                'id_client' => $pret['id_client'],
+                'montant' => $pret['montant'],
+                'duree' => $pret['duree'],
+                'date_debut' => $pret['date_debut'], // Note: cette clé est utilisée directement dans la réponse
+                'frequence_remboursement' => $pret['frequence_remboursement'],
+                'pourcentage_assurance' => $pret['pourcentage_assurance'] ?? 0,
+                'delai_mois' => $pret['delai_mois'] ?? 0,
+                'statut' => $pret['statut'],
+                'est_valide' => $pret['est_valide'] // Notez le underscore
+            ],
+            'type_pret' => [
+                'nom' => $type['nom'],
+                'taux_interet' => $type['taux_interet']
+            ],
+            'annuite' => $annuite,
+            'assurance' => $assurance,
+            'montant_total' => $annuite * $pret['duree'] * self::getPeriodesParAn($pret['frequence_remboursement']),
+            'date_debut' => $date_debut->format('Y-m-d'), // Cette clé est dupliquée - problème potentiel
+            'date_fin' => $date_fin->format('Y-m-d'),
+            'tableau_amortissement' => $tableau_amortissement
+        ];
     
-        Flight::json($pret);
+        Flight::json($response);
+    }
+
+    private static function calculerTableauAmortissement($montant, $tauxAnnuel, $duree, $frequence, $delai_mois, $date_debut, $assurance) {
+        $periodesParAn = self::getPeriodesParAn($frequence);
+        $n =($duree/$periodesParAn) * $periodesParAn;
+        $i = $tauxAnnuel / 100 / $periodesParAn;
+        $annuite = ($montant * $i) / (1 - pow(1 + $i, -$n));
+        
+        $tableau = [];
+        $capital_restant = $montant;
+        $date = clone $date_debut;
+        
+        // Période de délai (si delai_mois > 0)
+        for ($m = 1; $m <= $delai_mois; $m++) {
+            $interet = $capital_restant * $i;
+            $date->add(new DateInterval('P1M'));
+            
+            $tableau[] = [
+                'periode' => $m,
+                'date' => $date->format('Y-m-d'),
+                'capital' => 0,
+                'interet' => $interet,
+                'assurance' => $assurance,
+                'montant_paye' => $interet + $assurance,
+                'capital_restant' => $capital_restant
+            ];
+        }
+        
+        // Période de remboursement
+        for ($p = 1; $p <= $n; $p++) {
+            $interet = $capital_restant * $i;
+            $capital = $annuite - $interet;
+            $capital_restant -= $capital;
+            
+            if ($capital_restant < 0) $capital_restant = 0;
+            
+            $date->add(new DateInterval('P1M'));
+            
+            $tableau[] = [
+                'periode' => $delai_mois + $p,
+                'date' => $date->format('Y-m-d'),
+                'capital' => $capital,
+                'interet' => $interet,
+                'assurance' => $assurance,
+                'montant_paye' => $annuite + $assurance,
+                'capital_restant' => $capital_restant
+            ];
+        }
+        
+        return $tableau;
     }
 
     public static function validerPret($id) {
         try {
             $db = getDB();
-            $stmt = $db->prepare("UPDATE pret SET is_valide = 1 WHERE id_pret = ?");
+            $stmt = $db->prepare("UPDATE pret SET est_valide = 1 WHERE id_pret = ?");
             $stmt->execute([$id]);
             
             Flight::json(['success' => true, 'message' => 'Prêt validé avec succès']);
@@ -177,7 +186,7 @@ class PretController {
     
     private static function calculerAnnuite($montant, $tauxAnnuel, $duree, $frequence) {
         $periodesParAn = self::getPeriodesParAn($frequence);
-        $n = $duree * $periodesParAn;
+        $n = ($duree/$periodesParAn) * $periodesParAn;
         $i = $tauxAnnuel / 100 / $periodesParAn;
 
         return ($montant * $i) / (1 - pow(1 + $i, -$n));

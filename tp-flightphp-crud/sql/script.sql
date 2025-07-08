@@ -41,6 +41,18 @@ CREATE TABLE fond (
         ON DELETE CASCADE
 );
 
+CREATE TABLE echeance_remboursement (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_pret INT NOT NULL,
+    mois_annee DATE NOT NULL,
+    montant_total DECIMAL(15,2),
+    part_interet DECIMAL(15,2),
+    part_capital DECIMAL(15,2),
+    statut_paiement ENUM('non payé', 'payé', 'en retard') DEFAULT 'non payé',
+    date_paiement_effectif DATE,
+    FOREIGN KEY (id_pret) REFERENCES pret(id_pret)
+);
+
 -- données initiales établissement
 INSERT INTO etablissement_financier (nom, email)
 VALUES ('EF', 'ef@email.com');
