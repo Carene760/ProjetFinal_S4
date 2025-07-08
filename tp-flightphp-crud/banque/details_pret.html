@@ -1,247 +1,228 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Détails du Prêt</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background-color: #f5f5f5;
-    }
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    h1 {
-      color: #2c3e50;
-      border-bottom: 2px solid #3498db;
-      padding-bottom: 10px;
-    }
-    .info-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    .info-card {
-      background: #f9f9f9;
-      padding: 15px;
-      border-radius: 5px;
-      border-left: 4px solid #3498db;
-    }
-    .info-card h3 {
-      margin-top: 0;
-      color: #3498db;
-    }
-    .info-card p {
-      margin: 5px 0;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-    }
-    th, td {
-      padding: 12px 15px;
-      text-align: left;
-      border-bottom: 1px solid #ddd;
-    }
-    th {
-      background-color: #3498db;
-      color: white;
-    }
-    tr:hover {
-      background-color: #f5f5f5;
-    }
-    .statut-en-cours {
-      color: #f39c12;
-      font-weight: bold;
-    }
-    .statut-rembourse {
-      color: #27ae60;
-      font-weight: bold;
-    }
-    .statut-impaye {
-      color: #e74c3c;
-      font-weight: bold;
-    }
-    .btn-retour {
-      display: inline-block;
-      padding: 10px 15px;
-      background-color: #3498db;
-      color: white;
-      text-decoration: none;
-      border-radius: 5px;
-      margin-bottom: 20px;
-    }
-    .btn-retour:hover {
-      background-color: #2980b9;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Détails du Prêt</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .section { margin-bottom: 30px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .total-row { font-weight: bold; background-color: #e6f7ff; }
+        .delai-row { background-color: #fff2e6; }
+        button { padding: 8px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .info-card { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <a href="Pret.html" class="btn-retour">← Retour à la liste</a>
     <h1>Détails du Prêt #<span id="pret-id"></span></h1>
     
     <div class="info-grid">
-      <div class="info-card">
-        <h3>Informations Client</h3>
-        <p><strong>Nom:</strong> <span id="client-nom"></span></p>
-        <p><strong>ID Client:</strong> <span id="client-id"></span></p>
-      </div>
-      
-      <div class="info-card">
-        <h3>Informations Prêt</h3>
-        <p><strong>Montant:</strong> <span id="montant"></span> Ar</p>
-        <p><strong>Durée:</strong> <span id="duree"></span> mois</p>
-        <p><strong>Taux:</strong> <span id="taux"></span>%</p>
-      </div>
-      
-      <div class="info-card">
-        <h3>Dates & Statut</h3>
-        <p><strong>Date début:</strong> <span id="date-debut"></span></p>
-        <p><strong>Date fin:</strong> <span id="date-fin"></span></p>
-        <p><strong>Statut:</strong> <span id="statut"></span></p>
-      </div>
-    </div>
-
-    <div class="info-card">
-      <h3>Paiements</h3>
-      <p><strong>Annuité:</strong> <span id="annuite"></span> Ar</p>
-      <p><strong>Fréquence:</strong> <span id="frequence"></span></p>
-      <p><strong>Total à rembourser:</strong> <span id="total-rembourse"></span> Ar</p>
-    </div>
-
-    <h2>Tableau d'Amortissement</h2>
-    <table id="tableau-amortissement">
-      <thead>
-        <tr>
-          <th>Période</th>
-          <th>Date</th>
-          <th>Capital restant</th>
-          <th>Intérêt</th>
-          <th>Capital</th>
-          <th>Annuité</th>
-          <th>Statut</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <script>
-    const apiBase = "http://localhost/ProjetFinal_S4_/tp-flightphp-crud/ws";
-    const pretId = new URLSearchParams(window.location.search).get('id');
-
-    // Fonction pour formater les nombres
-    function formatNumber(num) {
-      return new Intl.NumberFormat('fr-FR').format(num);
-    }
-
-    // Fonction pour formater les dates
-    function formatDate(dateString) {
-      const options = { year: 'numeric', month: 'long', day: 'numeric' };
-      return new Date(dateString).toLocaleDateString('fr-FR', options);
-    }
-
-    // Fonction pour calculer le tableau d'amortissement
-    function calculerTableauAmortissement(pret) {
-      const tableau = [];
-      let capitalRestant = parseFloat(pret.montant);
-      const tauxPeriodique = parseFloat(pret.taux_interet) / 100 / 12; // Taux mensuel
-      const annuite = parseFloat(pret.annuite);
-      const dateDebut = new Date(pret.date_debut);
-      
-      for (let periode = 1; periode <= pret.duree; periode++) {
-        const interet = capitalRestant * tauxPeriodique;
-        const capital = annuite - interet;
-        capitalRestant -= capital;
+        <div class="info-card">
+            <h2>Informations de base</h2>
+            <p><strong>Client:</strong> <span id="client-id"></span></p>
+            <p><strong>Type de prêt:</strong> <span id="type-pret"></span></p>
+            <p><strong>Montant:</strong> <span id="montant"></span> €</p>
+            <p><strong>Durée:</strong> <span id="duree"></span> mois</p>
+            <p><strong>Date de début:</strong> <span id="date-debut"></span></p>
+            <p><strong>Date de fin estimée:</strong> <span id="date-fin"></span></p>
+        </div>
         
-        // Calcul de la date pour chaque période
-        const datePaiement = new Date(dateDebut);
-        datePaiement.setMonth(dateDebut.getMonth() + periode);
+        <div class="info-card">
+            <h2>Conditions financières</h2>
+            <p><strong>Fréquence de remboursement:</strong> <span id="frequence"></span></p>
+            <p><strong>Taux d'intérêt:</strong> <span id="taux-interet"></span>%</p>
+            <p><strong>Assurance:</strong> <span id="assurance-percent"></span>%</p>
+            <p><strong>Période de délai:</strong> <span id="delai-mois"></span> mois</p>
+            <p><strong>Statut:</strong> <span id="statut"></span></p>
+            <p><strong>Validé:</strong> <span id="est-valide"></span></p>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>Synthèse financière</h2>
+        <div class="info-grid">
+            <div class="info-card">
+                <p><strong>Annuité constante:</strong> <span id="annuite"></span> €</p>
+                <p><strong>Assurance par période:</strong> <span id="assurance-montant"></span> €</p>
+            </div>
+            <div class="info-card">
+                <p><strong>Total intérêts:</strong> <span id="total-interets"></span> €</p>
+                <p><strong>Total assurance:</strong> <span id="total-assurance"></span> €</p>
+                <p><strong>Montant total à rembourser:</strong> <span id="montant-total"></span> €</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>Tableau d'amortissement</h2>
+        <table id="amortissement">
+            <thead>
+                <tr>
+                    <th>Période</th>
+                    <th>Date</th>
+                    <th>Capital</th>
+                    <th>Intérêt</th>
+                    <th>Assurance</th>
+                    <th>Montant à payer</th>
+                    <th>Capital restant</th>
+                </tr>
+            </thead>
+            <tbody id="amortissement-body"></tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="2">Totaux</td>
+                    <td id="total-capital"></td>
+                    <td id="total-interets-table"></td>
+                    <td id="total-assurance-table"></td>
+                    <td id="total-paiements"></td>
+                    <td>-</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    
+    <button id="valider-pret">Valider le prêt</button>
+    
+    <script>
+        // Configuration de l'API
+        const apiBase = "http://localhost/S4/ProjetFinal_S4_/tp-flightphp-crud/ws";
         
-        tableau.push({
-          periode,
-          date: datePaiement.toISOString().split('T')[0],
-          capitalRestant: capitalRestant > 0 ? capitalRestant : 0,
-          interet,
-          capital,
-          annuite,
-          statut: periode <= pret.paiements_effectues ? 'Payé' : 'À payer'
-        });
-      }
-      
-      return tableau;
-    }
-
-    // Fonction pour afficher les détails du prêt
-    function afficherDetailsPret(pret) {
-      document.getElementById('pret-id').textContent = pret.id_pret;
-      document.getElementById('client-nom').textContent = pret.client_nom || 'N/A';
-      document.getElementById('client-id').textContent = pret.id_client;
-      document.getElementById('montant').textContent = formatNumber(pret.montant);
-      document.getElementById('duree').textContent = pret.duree;
-      document.getElementById('taux').textContent = pret.taux_interet;
-      document.getElementById('date-debut').textContent = formatDate(pret.date_debut);
-      document.getElementById('date-fin').textContent = formatDate(pret.date_fin);
-      
-      // Gestion du statut avec style différent
-      const statutElement = document.getElementById('statut');
-      statutElement.textContent = pret.statut;
-      statutElement.className = `statut-${pret.statut.toLowerCase().replace('é', 'e')}`;
-      
-      document.getElementById('annuite').textContent = formatNumber(pret.annuite);
-      document.getElementById('frequence').textContent = pret.frequence_remboursement;
-      document.getElementById('total-rembourse').textContent = formatNumber(pret.annuite * pret.duree);
-      
-      // Générer et afficher le tableau d'amortissement
-      const tableauAmortissement = calculerTableauAmortissement(pret);
-      const tbody = document.querySelector('#tableau-amortissement tbody');
-      tbody.innerHTML = '';
-      
-      tableauAmortissement.forEach(paiement => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${paiement.periode}</td>
-          <td>${formatDate(paiement.date)}</td>
-          <td>${formatNumber(paiement.capitalRestant.toFixed(2))}</td>
-          <td>${formatNumber(paiement.interet.toFixed(2))}</td>
-          <td>${formatNumber(paiement.capital.toFixed(2))}</td>
-          <td>${formatNumber(paiement.annuite.toFixed(2))}</td>
-          <td class="${paiement.statut === 'Payé' ? 'statut-rembourse' : 'statut-en-cours'}">${paiement.statut}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    // Charger les données du prêt
-    function chargerDetailsPret() {
-      fetch(`${apiBase}/banque/prets/${pretId}`)
-        .then(response => response.json())
-        .then(pret => {
-          afficherDetailsPret(pret);
-        })
-        .catch(error => {
-          console.error('Erreur:', error);
-          alert('Impossible de charger les détails du prêt');
-        });
-    }
-
-    // Démarrer le chargement des données
-    if (pretId) {
-      chargerDetailsPret();
-    } else {
-      alert('Aucun ID de prêt spécifié');
-      window.location.href = 'Pret.html';
-    }
-  </script>
+        // Récupérer l'ID du prêt depuis l'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const pretId = urlParams.get('id');
+        
+        if (!pretId) {
+            alert("Aucun ID de prêt spécifié");
+            window.location.href = "Pret.html";
+        }
+        
+        // Afficher l'ID
+        document.getElementById('pret-id').textContent = pretId;
+        
+        // Fonction AJAX générique
+        function ajax(method, url, data, callback) {
+            const xhr = new XMLHttpRequest();
+            xhr.open(method, apiBase + url, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        callback(JSON.parse(xhr.responseText));
+                    } else {
+                        console.error("Erreur:", xhr.responseText);
+                        alert("Erreur lors de la requête : " + xhr.responseText);
+                    }
+                }
+            };
+            xhr.send(data ? JSON.stringify(data) : null);
+        }
+        
+        // Charger les données du prêt
+        function chargerDetailsPret() {
+            ajax("GET", `/prets/${pretId}/details`, null, (data) => {
+                console.log("Données reçues:", data); // Debug
+                afficherDetailsPret(data);
+            });
+        }
+        
+        function afficherDetailsPret(data) {
+            console.log("Affichage des détails:", data); // Debug
+            
+            // Vérifier la structure des données
+            if (!data.pret || !data.type_pret) {
+                console.error("Structure de données invalide:", data);
+                alert("Erreur: Structure de données invalide");
+                return;
+            }
+            
+            // Informations de base
+            document.getElementById('client-id').textContent = data.pret.id_client || 'N/A';
+            document.getElementById('type-pret').textContent = data.type_pret.nom || 'N/A';
+            document.getElementById('montant').textContent = data.pret.montant ? parseFloat(data.pret.montant).toFixed(2) : '0.00';
+            document.getElementById('duree').textContent = data.pret.duree || 'N/A';
+            document.getElementById('date-debut').textContent = data.date_debut || data.pret.date_debut || 'N/A';
+            document.getElementById('date-fin').textContent = data.date_fin || 'N/A';
+            document.getElementById('frequence').textContent = data.pret.frequence_remboursement || 'N/A';
+            document.getElementById('taux-interet').textContent = data.type_pret.taux_interet || '0';
+            document.getElementById('assurance-percent').textContent = data.pret.pourcentage_assurance || '0';
+            document.getElementById('delai-mois').textContent = data.pret.delai_mois || '0';
+            document.getElementById('statut').textContent = data.pret.statut || 'N/A';
+            document.getElementById('est-valide').textContent = data.pret.est_valide ? 'Oui' : 'Non';
+            
+            // Synthèse financière
+            document.getElementById('annuite').textContent = data.annuite ? parseFloat(data.annuite).toFixed(2) : '0.00';
+            document.getElementById('assurance-montant').textContent = data.assurance ? parseFloat(data.assurance).toFixed(2) : '0.00';
+            
+            // Calculs sécurisés pour les totaux
+            let totalInterets = 0;
+            let totalAssurance = 0;
+            if (data.tableau_amortissement && Array.isArray(data.tableau_amortissement)) {
+                totalInterets = data.tableau_amortissement.reduce((sum, l) => sum + (parseFloat(l.interet) || 0), 0);
+                totalAssurance = data.tableau_amortissement.reduce((sum, l) => sum + (parseFloat(l.assurance) || 0), 0);
+            }
+            
+            document.getElementById('total-interets').textContent = totalInterets.toFixed(2);
+            document.getElementById('total-assurance').textContent = totalAssurance.toFixed(2);
+            document.getElementById('montant-total').textContent = data.montant_total ? parseFloat(data.montant_total).toFixed(2) : '0.00';
+            
+            // Tableau d'amortissement
+            const tbody = document.getElementById('amortissement-body');
+            tbody.innerHTML = '';
+            
+            if (data.tableau_amortissement && Array.isArray(data.tableau_amortissement)) {
+                data.tableau_amortissement.forEach(ligne => {
+                    const tr = document.createElement('tr');
+                    if (parseFloat(ligne.capital) === 0) tr.classList.add('delai-row');
+                    
+                    tr.innerHTML = `
+                        <td>${ligne.periode || 'N/A'}</td>
+                        <td>${ligne.date || 'N/A'}</td>
+                        <td>${(parseFloat(ligne.capital) || 0).toFixed(2)}</td>
+                        <td>${(parseFloat(ligne.interet) || 0).toFixed(2)}</td>
+                        <td>${(parseFloat(ligne.assurance) || 0).toFixed(2)}</td>
+                        <td>${(parseFloat(ligne.montant_paye) || 0).toFixed(2)}</td>
+                        <td>${(parseFloat(ligne.capital_restant) || 0).toFixed(2)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+            
+            // Totaux
+            document.getElementById('total-capital').textContent = data.pret.montant ? parseFloat(data.pret.montant).toFixed(2) : '0.00';
+            document.getElementById('total-interets-table').textContent = totalInterets.toFixed(2);
+            document.getElementById('total-assurance-table').textContent = totalAssurance.toFixed(2);
+            document.getElementById('total-paiements').textContent = data.montant_total ? parseFloat(data.montant_total).toFixed(2) : '0.00';
+            
+            // Bouton valider
+            const validerBtn = document.getElementById('valider-pret');
+            if (data.pret.est_valide == 1 || data.pret.est_valide === true) {
+                validerBtn.disabled = true;
+                validerBtn.textContent = 'Prêt déjà validé';
+                validerBtn.style.backgroundColor = '#cccccc';
+            } else {
+                validerBtn.onclick = validerPret;
+            }
+        }
+        
+        function validerPret() {
+            if (!confirm("Voulez-vous vraiment valider ce prêt ? Cette action est irréversible.")) return;
+            
+            ajax("POST", `/prets/${pretId}/valider`, null, (data) => {
+                if (data.success) {
+                    alert('Prêt validé avec succès !');
+                    chargerDetailsPret(); // Recharger les données
+                } else {
+                    alert("Erreur: " + (data.message || 'Erreur inconnue'));
+                }
+            });
+        }
+        
+        // Charger les données au démarrage
+        chargerDetailsPret();
+    </script>
 </body>
 </html>

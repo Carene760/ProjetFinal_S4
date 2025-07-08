@@ -35,7 +35,7 @@
   </table>
 
   <script>
-    const apiBase = "http://localhost/tp-flightphp-crud-MVC/tp-flightphp-crud/ws";
+    const apiBase = "http://localhost/tp-flightphp-crud/ws";
 
     function ajax(method, url, data, callback) {
       const xhr = new XMLHttpRequest();
@@ -64,8 +64,8 @@
             <td>${e.montant_min}</td>
             <td>${e.montant_max}</td>
             <td>
-              <button onclick='remplirFormulaire(${JSON.stringify(e)})'>✏</button>
-              <button onclick='supprimerTypePret(${e.id})'>🗑</button>
+              <button onclick='remplirFormulaire(${JSON.stringify(e)})'>✏️</button>
+              <button onclick='supprimerTypePret(${e.id})'>🗑️</button>
             </td>
           `;
           tbody.appendChild(tr);
@@ -81,11 +81,11 @@
       const montant_max = document.getElementById("montant_max").value;
       const montant_min = document.getElementById("montant_min").value;
 
-      const data = nom=${encodeURIComponent(nom)}&taux_interet=${encodeURIComponent(taux_interet)}&duree_max=${encodeURIComponent(duree_max)}&montant_max=${encodeURIComponent(montant_max)}&montant_min=${encodeURIComponent(montant_min)};
+      const data = `nom=${encodeURIComponent(nom)}&taux_interet=${encodeURIComponent(taux_interet)}&duree_max=${encodeURIComponent(duree_max)}&montant_max=${encodeURIComponent(montant_max)}&montant_min=${encodeURIComponent(montant_min)}`;
 
       if (id) {
         console.log("Modification du type de prêt avec ID:", id);
-        ajax("PUT", /type-prets/${id}, data, () => {
+        ajax("PUT", `/type-prets/${id}`, data, () => {
           resetForm();
           chargerTypePret();
         });
@@ -109,7 +109,7 @@
 
     function supprimerTypePret(id) {
       if (confirm("Supprimer ce type de prêt ?")) {
-        ajax("DELETE", /type-prets/${id}, null, () => {
+        ajax("DELETE", `/type-prets/${id}`, null, () => {
           chargerTypePret();
         });
       }
