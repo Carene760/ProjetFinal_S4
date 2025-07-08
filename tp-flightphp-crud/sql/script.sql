@@ -82,6 +82,8 @@ CREATE TABLE pret (
     CONSTRAINT fk_type FOREIGN KEY (id_type) REFERENCES type_pret(id),
     CONSTRAINT fk_ef FOREIGN KEY (id_ef) REFERENCES etablissement_financier(id)
 );
+ALTER TABLE pret ADD COLUMN pourcentage_assurance DECIMAL(5,2) DEFAULT 0.00;
+ALTER TABLE pret ADD COLUMN delai_mois INT DEFAULT 0;
 
 
 
