@@ -62,6 +62,9 @@
 <script>
 <<<<<<< Updated upstream
   const apiBase = "/tp-flightphp-crud/ws";
+=======
+  const apiBase = "http://localhost/ProjetFinal_S4/tp-flightphp-crud/ws";
+>>>>>>> Stashed changes
 
   function ajouterFond(event) {
     event.preventDefault();
