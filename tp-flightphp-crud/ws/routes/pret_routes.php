@@ -8,4 +8,7 @@ Flight::route('PUT /prets/@id', ['PretController', 'update']);
 Flight::route('DELETE /prets/@id', ['PretController', 'delete']);
 Flight::route('GET /prets/@id/details', ['PretController', 'getDetailsPret']);
 Flight::route('POST /prets/@id/valider', ['PretController', 'validerPret']);
+Flight::route('POST /prets/@id/simulation', ['PretController', 'ajouterSimulation']);
+Flight::route('GET /prets/@id/simulations', ['PretController', 'getSimulationsByPret']);
 Flight::route('GET /pret/interets-mensuels', ['PretController', 'getInteretsMensuels']);
+

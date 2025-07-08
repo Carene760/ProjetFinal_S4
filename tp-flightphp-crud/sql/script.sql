@@ -58,6 +58,12 @@ ALTER TABLE echeance_remboursement ADD COLUMN rassurance DECIMAL(15,2) DEFAULT 0
 INSERT INTO etablissement_financier (nom, email)
 VALUES ('EF', 'ef@email.com');
 
+CREATE TABLE simulation (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_pret INT,
+    CONSTRAINT fk_pret FOREIGN KEY (id_pret) REFERENCES pret(id_pret)
+);
+
 -- Table prêt
 CREATE TABLE pret (
     id_pret INT AUTO_INCREMENT PRIMARY KEY,
@@ -73,7 +79,7 @@ CREATE TABLE pret (
     est_valide BOOLEAN DEFAULT FALSE,
     delai_mois INT DEFAULT 0,
     CONSTRAINT fk_client FOREIGN KEY (id_client) REFERENCES client(id),
-    CONSTRAINT fk_type FOREIGN KEY (id_type) REwFERENCES type_pret(id),
+    CONSTRAINT fk_type FOREIGN KEY (id_type) REFERENCES type_pret(id),
     CONSTRAINT fk_ef FOREIGN KEY (id_ef) REFERENCES etablissement_financier(id)
 );
 
