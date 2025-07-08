@@ -177,71 +177,89 @@ class PretController {
         $db = getDB();
         try {
             $db->beginTransaction();
-
+    
+            // Récupération du prêt
             $stmt = $db->prepare("SELECT * FROM pret WHERE id_pret = ?");
             $stmt->execute([$id]);
             $pret = $stmt->fetch(PDO::FETCH_ASSOC);
-
+    
+            if (!$pret) {
+                throw new Exception("Prêt introuvable.");
+            }
+    
+            if ($pret['est_valide']) {
+                throw new Exception("Prêt déjà validé.");
+            }
+    
             $fondActuel = Fond::getFondActuelParEtablissement($pret['id_ef']);
             if ($pret['montant'] > $fondActuel['fond_actuel']) {
                 throw new Exception("Fonds insuffisants dans l'établissement.");
             }
-
-            // Étape 1 : Mise à jour du prêt
-            $stmt = $db->prepare("UPDATE pret SET est_valide = 1 WHERE id_pret = ?");
-            $stmt->execute([$id]);
-
-
-            Fond::ajouterFond($pret['id_ef'], $pret['montant'], 1); // 1 = SORTIE
-
-            $date_debut = new DateTime($pret['date_debut']);
-
-            $type = TypePret::getById($pret['id_type']);
-            $assurance = self::calculerAssurance(
-                $pret['montant'],
-                $pret['pourcentage_assurance'] ?? 0,
-                $pret['frequence_remboursement']
-            );
     
-            $tableau = self::calculerTableauAmortissement(
-                $pret['montant'],
-                $type['taux_interet'],
-                $pret['duree'],
-                $pret['frequence_remboursement'],
-                $pret['delai_mois'] ?? 0,
-                $date_debut,
-                $assurance
-            );
-
-            foreach ($tableau as $ligne) {
-                $mois_annee = (new DateTime($ligne['date']))->format('Y-m'); // date complète
-            
-                $data = (object) [
-                    'id_pret' => $id,
-                    'mois_annee' => $mois_annee,
-                    'montant_total' => round($ligne['montant_paye'], 2),
-                    'part_interet' => round($ligne['interet'], 2),
-                    'part_capital' => round($ligne['capital'], 2),
-                    'statut_paiement' => 'non payé',
-                    'date_paiement_effectif' => null,
-                    'rassurance' => round($ligne['assurance'], 2)
-                ];
-            
-                Remboursement::insert($data);
-            }
-            
+            // Étape 1 : MAJ est_valide
+            self::updateEstValide($id);
     
-
+            // Étape 2 : sortie de fonds
+            self::sortirFond($pret);
+    
+            // // Étape 3 : échéances
+            self::genererEcheances($pret);
+    
             $db->commit();
             Flight::json(['success' => true, 'message' => 'Prêt validé avec succès']);
-    
         } catch (Exception $e) {
             $db->rollBack();
             Flight::json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
     
+    private static function updateEstValide($id) {
+        $db = getDB();
+        $stmt = $db->prepare("UPDATE pret SET est_valide = 1 WHERE id_pret = ?");
+        $stmt->execute([$id]);
+    }
     
+    private static function sortirFond($pret) {
+        Fond::ajouterFond($pret['id_ef'], $pret['montant'], 1); // 1 = SORTIE
+    }
+
+    private static function genererEcheances($pret) {
+        $type = TypePret::getById($pret['id_type']);
+        $date_debut = new DateTime($pret['date_debut']);
+    
+        $assurance = self::calculerAssurance(
+            $pret['montant'],
+            $pret['pourcentage_assurance'] ?? 0,
+            $pret['frequence_remboursement']
+        );
+    
+        $tableau = self::calculerTableauAmortissement(
+            $pret['montant'],
+            $type['taux_interet'],
+            $pret['duree'],
+            $pret['frequence_remboursement'],
+            $pret['delai_mois'] ?? 0,
+            $date_debut,
+            $assurance
+        );
+    
+        foreach ($tableau as $ligne) {
+            $mois_annee = (new DateTime($ligne['date']))->format('Y-m-d');
+    
+            $data = (object) [
+                'id_pret' => $pret['id_pret'],
+                'mois_annee' => $mois_annee,
+                'montant_total' => round($ligne['montant_paye'], 2),
+                'part_interet' => round($ligne['interet'], 2),
+                'part_capital' => round($ligne['capital'], 2),
+                'statut_paiement' => 'non payé',
+                'date_paiement_effectif' => null,
+                'rassurance' => round($ligne['assurance'], 2)
+            ];
+    
+            Remboursement::insert($data);
+        }
+    }
     
     private static function calculerAnnuite($montant, $tauxAnnuel, $duree, $frequence) {
         $periodesParAn = self::getPeriodesParAn($frequence);
