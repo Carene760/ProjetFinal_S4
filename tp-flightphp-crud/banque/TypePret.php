@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Creation de types de prêts</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input, button { margin: 5px; padding: 5px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+  </style>
+</head>
+<body>
+
+  <h1>Create Type de Prêt</h1>
+
+  <div>
+    <input type="hidden" id="id">
+    <input type="text" id="nom" placeholder="Nom">
+    <input type="number" id="taux_interet" placeholder="Taux d'intérêt" step="0.01">
+    <input type="number" id="duree_max" placeholder="Durée Max" step="1">
+    <input type="number" id="montant_max" placeholder="Montant Max" step="0.01">
+    <input type="number" id="montant_min" placeholder="Montant Min" step="0.01">
+    <button onclick="ajouterOuModifier()">Ajouter / Modifier</button>
+  </div>
+
+  <table id="table-type-prets">
+    <thead>
+      <tr>
+        <th>ID</th><th>Nom</th><th>Taux d'intérêt</th><th>Durée Max</th><th>Montant Min</th><th>Montant Max</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const apiBase = "http://localhost/tp-flightphp-crud-MVC/tp-flightphp-crud/ws";
+
+    function ajax(method, url, data, callback) {
+      const xhr = new XMLHttpRequest();
+      xhr.open(method, apiBase + url, true);
+      xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+          console.log(xhr.responseText);
+          callback(JSON.parse(xhr.responseText));
+        }
+      };
+      xhr.send(data);
+    }
+
+    function chargerTypePret() {
+      ajax("GET", "/type-prets", null, (data) => {
+        const tbody = document.querySelector("#table-type-prets tbody");
+        tbody.innerHTML = "";
+        data.forEach(e => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${e.id}</td>
+            <td>${e.nom}</td>
+            <td>${e.taux_interet}</td>
+            <td>${e.duree_max}</td>
+            <td>${e.montant_min}</td>
+            <td>${e.montant_max}</td>
+            <td>
+              <button onclick='remplirFormulaire(${JSON.stringify(e)})'>✏</button>
+              <button onclick='supprimerTypePret(${e.id})'>🗑</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      });
+    }
+
+    function ajouterOuModifier() {
+      const id = document.getElementById("id").value;
+      const nom = document.getElementById("nom").value;
+      const taux_interet = document.getElementById("taux_interet").value;
+      const duree_max = document.getElementById("duree_max").value;
+      const montant_max = document.getElementById("montant_max").value;
+      const montant_min = document.getElementById("montant_min").value;
+
+      const data = nom=${encodeURIComponent(nom)}&taux_interet=${encodeURIComponent(taux_interet)}&duree_max=${encodeURIComponent(duree_max)}&montant_max=${encodeURIComponent(montant_max)}&montant_min=${encodeURIComponent(montant_min)};
+
+      if (id) {
+        console.log("Modification du type de prêt avec ID:", id);
+        ajax("PUT", /type-prets/${id}, data, () => {
+          resetForm();
+          chargerTypePret();
+        });
+      } else {
+        console.log("Ajout d'un nouveau type de prêt");
+        ajax("POST", "/type-prets", data, () => {
+          resetForm();
+          chargerTypePret();
+        });
+      }
+    }
+
+    function remplirFormulaire(e) {
+      document.getElementById("id").value = e.id;
+      document.getElementById("nom").value = e.nom;
+      document.getElementById("taux_interet").value = e.taux_interet;
+      document.getElementById("duree_max").value = e.duree_max;
+      document.getElementById("montant_max").value = e.montant_max;
+      document.getElementById("montant_min").value = e.montant_min;
+    }
+
+    function supprimerTypePret(id) {
+      if (confirm("Supprimer ce type de prêt ?")) {
+        ajax("DELETE", /type-prets/${id}, null, () => {
+          chargerTypePret();
+        });
+      }
+    }
+
+    function resetForm() {
+      document.getElementById("id").value = "";
+      document.getElementById("nom").value = "";
+      document.getElementById("taux_interet").value = "";
+      document.getElementById("duree_max").value = "";
+      document.getElementById("montant_max").value = "";
+      document.getElementById("montant_min").value = "";
+    }
+
+    chargerTypePret();
+  </script>
+
+</body>
+</html>

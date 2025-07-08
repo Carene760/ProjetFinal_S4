@@ -77,6 +77,19 @@ CREATE TABLE pret (
     CONSTRAINT fk_ef FOREIGN KEY (id_ef) REFERENCES etablissement_financier(id)
 );
 
+CREATE TABLE echeance_remboursement (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_pret INT NOT NULL,
+    mois_annee DATE NOT NULL,
+    montant_total DECIMAL(15,2),
+    part_interet DECIMAL(15,2),
+    part_capital DECIMAL(15,2),
+    statut_paiement ENUM('non payé', 'payé', 'en retard') DEFAULT 'non payé',
+    date_paiement_effectif DATE,
+    FOREIGN KEY (id_pret) REFERENCES pret(id_pret)
+);
+
+
 -- données initiales type_pret
 INSERT INTO type_pret (nom, taux_interet, duree_max, montant_max, montant_min) VALUES
 ('Prêt immobilier', 6.50, 240, 500000000.00, 10000000.00),     -- 20 ans

@@ -20,9 +20,11 @@ class TypePretController {
     }
 
     public static function update($id) {
-        $data = Flight::request()->data;
-        Pret::update($id, $data);
-        Flight::json(['message' => 'Prêt modifié']);
+        parse_str(file_get_contents("php://input"), $put_vars);
+        $data = (object) $put_vars;
+
+        TypePret::update($id, $data);
+        Flight::json(['message' => 'Type de prêt modifié']);
     }
 
 
@@ -30,12 +32,6 @@ class TypePretController {
         TypePret::delete($id);
         Flight::json(['message' => 'Type de prêt supprimé']);
     }
-
-    public static function getFondActuel() {
-        $fondActuel = Pret::getFondActuel(); 
-        Flight::json(['fond_actuel' => $fondActuel]);
-    }
-
 }
 
 ?>

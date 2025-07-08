@@ -1,93 +1,63 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Ajout de fond - Établissement Financier</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #eef1f5;
-      padding: 40px;
-    }
-
-    .container {
-      width: 400px;
-      margin: auto;
-      background: white;
-      padding: 25px;
-      border-radius: 8px;
-      box-shadow: 0 0 8px rgba(0,0,0,0.1);
-    }
-
-    h2 {
-      text-align: center;
-    }
-
-    label {
-      display: block;
-      margin-top: 15px;
-    }
-
-    input, select {
-      width: 100%;
-      padding: 10px;
-      margin-top: 5px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    }
-
-    button {
-      margin-top: 20px;
-      width: 100%;
-      padding: 10px;
-      background-color: #2d89ef;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      font-size: 16px;
-    }
-
-    button:hover {
-      background-color: #1b5fa7;
-    }
-
-    #message {
-      text-align: center;
-      margin-top: 15px;
-      color: green;
-    }
-
-    #fondActuel {
-      text-align: center;
-      font-weight: bold;
-      margin-top: 20px;
-      font-size: 18px;
-    }
-  </style>
+    <title>Gestion de aaa fonds - EF</title>
+   
+   <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo isset($page_title) ? $page_title . " - " . $site_title : $site_title; ?></title>
+    <meta name="description" content="<?php echo $site_description; ?>">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-
+<main class="main">
 <div class="container">
-  <h2>Ajout de Fond - EF</h2>
-  <form onsubmit="ajouterFond(event)">
-    <input type="hidden" id="etablissement_id" value="1">
-
-    <label for="montant">Montant :</label>
-    <input type="number" step="0.01" id="montant" required>
-
-    <label for="type_mouvement">Type de mouvement :</label>
-    <select id="type_mouvement" required>
-      <option value="0">Entrée</option>
-      <option value="1">Sortie</option>
-    </select>
-
-  
-
-    <button type="submit">Ajouter le fond</button>
-  </form>
-
-  <div id="message"></div>
-  <div id="fondActuel">Chargement du fond actuel...</div>
+  <div class="card">
+    <div class="card-header">
+      <h2><i class="fas fa-money-bill-wave"></i> Gestion des fonds</h2>
+    </div>
+    
+    <div class="card-body">
+      <form onsubmit="ajouterFond(event)">
+        <input type="hidden" id="etablissement_id" value="1">
+        
+        <div class="form-group">
+          <label for="montant"><i class="fas fa-coins"></i> Montant :</label>
+          <div class="form-amount">
+            <span class="currency-symbol">Ar</span>
+            <input type="number" step="0.01" id="montant" class="form-control" placeholder="Entrez le montant" required>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="type_mouvement"><i class="fas fa-exchange-alt"></i> Type de mouvement :</label>
+          <select id="type_mouvement" class="form-control" required>
+            <option value="0">Entrée de fonds</option>
+            <option value="1">Sortie de fonds</option>
+          </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          <i class="fas fa-plus-circle"></i> Ajouter le fond
+        </button>
+      </form>
+      
+      <div id="message"></div>
+      
+      <div id="fondActuel">
+        <i class="fas fa-wallet"></i>
+        <span>Fond actuel : <span class="fond-value" id="fondValue">Chargement...</span></span>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -95,13 +65,17 @@
 
   function ajouterFond(event) {
     event.preventDefault();
+    
+    // Afficher l'indicateur de chargement
+    const submitBtn = document.getElementById("submitBtn");
+    submitBtn.innerHTML = '<span class="loading"></span> Traitement...';
+    submitBtn.disabled = true;
 
     const etablissement_id = document.getElementById("etablissement_id").value;
     const montant = document.getElementById("montant").value;
     const type_mouvement = document.getElementById("type_mouvement").value;
 
-   const data = `etablissement_id=${etablissement_id}&montant=${montant}&type_mouvement=${type_mouvement}`;
-
+    const data = `etablissement_id=${etablissement_id}&montant=${montant}&type_mouvement=${type_mouvement}`;
 
     const xhr = new XMLHttpRequest();
     xhr.open("POST", apiBase + "/ajout-fond", true);
@@ -110,22 +84,28 @@
     xhr.onreadystatechange = function () {
       if (xhr.readyState === 4) {
         const message = document.getElementById("message");
+        message.className = "";
+        
         if (xhr.status === 200) {
           const response = JSON.parse(xhr.responseText);
           message.textContent = response.message;
-          message.style.color = "green";
+          message.className = "success-message";
+          
           document.getElementById("montant").value = "";
-          document.getElementById("date_mouvement").value = "";
-          chargerFondActuel(); // Recharger le fond
+          chargerFondActuel();
         } else {
           try {
             const response = JSON.parse(xhr.responseText);
-            message.textContent = response.error || "Erreur lors de l’ajout";
+            message.textContent = response.error || "Erreur lors de l'ajout du fond";
           } catch {
-            message.textContent = "Erreur lors de l’ajout";
+            message.textContent = "Erreur lors de l'ajout du fond";
           }
-          message.style.color = "red";
+          message.className = "error-message";
         }
+        
+        // Réactiver le bouton
+        submitBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Ajouter le fond';
+        submitBtn.disabled = false;
       }
     };
 
@@ -133,17 +113,19 @@
   }
 
   function chargerFondActuel() {
+    const fondValue = document.getElementById("fondValue");
+    fondValue.textContent = "Chargement...";
+    
     const xhr = new XMLHttpRequest();
     xhr.open("GET", apiBase + "/fond-actuel", true);
 
     xhr.onreadystatechange = function () {
       if (xhr.readyState === 4) {
-        const fondActuel = document.getElementById("fondActuel");
         if (xhr.status === 200) {
           const response = JSON.parse(xhr.responseText);
-          fondActuel.textContent = "Fond actuel : " + response.fond_actuel + " Ar";
+          fondValue.textContent = response.fond_actuel + " Ar";
         } else {
-          fondActuel.textContent = "Erreur lors du chargement du fond actuel";
+          fondValue.textContent = "Erreur de chargement";
         }
       }
     };
@@ -151,8 +133,13 @@
     xhr.send();
   }
 
-  window.onload = chargerFondActuel();
+  // Charger le fond actuel au démarrage
+  window.onload = chargerFondActuel;
 </script>
+<button onclick="history.back()" class="btn btn-secondary" style="margin-bottom: 20px;">
+  <i class="fas fa-arrow-left"></i> Retour
+</button>
 
 </body>
+</main>
 </html>

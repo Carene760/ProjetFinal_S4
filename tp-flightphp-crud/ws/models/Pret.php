@@ -85,4 +85,72 @@ class Pret {
         $result = $stmt->fetch(PDO::FETCH_ASSOC); // Récupération du résultat
         return $result['fond_actuel'] ?? 0; // Retourne 0 si aucun résultat
     }
+
+    function genererEcheancesMensuellesAnnuitesConstantes(PDO $pdo, $id_pret) {
+        // 🔍 Récupération des infos du prêt
+        $stmt = $pdo->prepare("
+            SELECT pret.*, type_pret.taux_interet
+            FROM pret
+            JOIN type_pret ON pret.id_type = type_pret.id_type
+            WHERE id_pret = ?
+        ");
+        $stmt->execute([$id_pret]);
+        $pret = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$pret) {
+            echo "❌ Prêt introuvable.";
+            return;
+        }
+
+        // ✅ Données utiles
+        $capital = $pret['montant'];
+        $duree = $pret['duree']; // en mois
+        $taux_annuel = $pret['taux_interet'];
+        $frequence = $pret['frequence_remboursement'];
+        $date_debut = new DateTime($pret['date_debut']);
+        $delai = intval($pret['delai_grace']);
+
+        // ✅ Appliquer le délai de grâce
+        $date_debut->modify("+{$delai} months");
+
+        // ✅ Calcul du taux mensuel
+        $taux_mensuel = ($taux_annuel / 100) / 12;
+
+        // ✅ Annuité constante (mensualité)
+        $mensualite = $capital * $taux_mensuel / (1 - pow(1 + $taux_mensuel, -$duree));
+
+        // Boucle sur chaque mois
+        for ($i = 0; $i < $duree; $i++) {
+            $date_echeance = $date_debut->format('Y-m-d');
+
+            // Intérêt = capital restant * taux mensuel
+            $interet = $capital * $taux_mensuel;
+            $part_capital = $mensualite - $interet;
+
+            // Insertion dans la table echeance_remboursement
+            $insert = $pdo->prepare("
+                INSERT INTO echeance_remboursement (
+                    id_pret, mois_annee, montant_total, part_interet, part_capital
+                ) VALUES (?, ?, ?, ?, ?)
+            ");
+            $insert->execute([
+                $id_pret,
+                $date_echeance,
+                round($mensualite, 2),
+                round($interet, 2),
+                round($part_capital, 2)
+            ]);
+
+            // Mettre à jour le capital restant
+            $capital -= $part_capital;
+
+            // Mois suivant
+            $date_debut->modify('+1 month');
+        }
+
+        echo "✅ Échéances générées avec succès pour le prêt #{$id_pret}";
+    }
+
+
+    
 }
