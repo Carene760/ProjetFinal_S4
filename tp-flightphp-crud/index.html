@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Tableau des intérêts mensuels</title>
+  <title>Tableau des fonds disponibles</title>
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -91,14 +91,6 @@
       background-color: #f8f9fa;
     }
 
-    .chart-container {
-      background-color: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      margin-top: 30px;
-    }
-
     .no-data {
       text-align: center;
       padding: 20px;
@@ -124,11 +116,10 @@
       }
     }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
-  <h1>Analyse des intérêts mensuels</h1>
+  <h1>Analyse des fonds disponibles</h1>
 
   <div class="controls">
     <label>
@@ -146,43 +137,30 @@
       <input type="month" id="fin" value="2023-06" />
     </label>
     
-    <button onclick="chargerInterets()">
-      <i class="fas fa-search"></i> Afficher les données
+    <button onclick="chargerFonds()">
+      Afficher les données
     </button>
   </div>
 
-  <table id="table-interets">
+  <table id="table-fonds">
     <thead>
       <tr>
         <th>Mois</th>
-        <th>Intérêts reçus (Ar)</th>
-        <th>Intérêts courus (Ar)</th>
-        <th>Total intérêts (Ar)</th>
+        <th>Fonds début mois (Ar)</th>
+        <th>Prêts accordés (Ar)</th>
+        <th>Remboursements (Ar)</th>
+        <th>Fonds fin mois (Ar)</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td colspan="4" class="no-data">Sélectionnez une période et cliquez sur "Afficher"</td>
+        <td colspan="6" class="no-data">Sélectionnez une période et cliquez sur "Afficher"</td>
       </tr>
     </tbody>
-    <tfoot id="table-footer" style="display: none;">
-      <tr>
-        <th>Total</th>
-        <th id="total-recus">0 Ar</th>
-        <th id="total-courus">0 Ar</th>
-        <th id="total-general">0 Ar</th>
-      </tr>
-    </tfoot>
   </table>
 
-  <div class="chart-container">
-    <h2>Visualisation graphique</h2>
-    <canvas id="graphique-interets" height="350"></canvas>
-  </div>
-
   <script>
-    const API_BASE = "http://localhost/tp-flightphp-crud-MVC/tp-flightphp-crud/ws"; // Adaptez cette URL
-    let chart = null;
+    const API_BASE = "http://localhost/tp-flightphp-crud-MVC/tp-flightphp-crud/ws"; // Adaptez cette URL à votre endpoint
 
     // Fonction pour formater les montants
     function formatMontant(montant) {
@@ -193,8 +171,17 @@
       }).format(montant) + " Ar";
     }
 
+    // Fonction pour formater l'affichage du mois
+    function formatMois(moisStr) {
+      if (!moisStr) return "Date inconnue";
+      const [annee, mois] = moisStr.split('-');
+      const moisNoms = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
+                       'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+      return `${moisNoms[parseInt(mois) - 1]} ${annee}`;
+    }
+
     // Fonction pour charger les données
-    async function chargerInterets() {
+    async function chargerFonds() {
   console.log("Début de chargement..."); // Debug 1
   
   const idEf = document.getElementById("id_ef").value;
@@ -210,7 +197,7 @@
   }
 
   try {
-    const url = `${API_BASE}/pret/interets-mensuels?id_ef=${idEf}&debut=${debut}&fin=${fin}`;
+    const url = `${API_BASE}/fonds/fonds-disponible?id_ef=${idEf}&debut=${debut}&fin=${fin}`;
     console.log("URL appelée:", url); // Debug 4
     
     const response = await fetch(url);
@@ -224,7 +211,7 @@
     console.log("Données reçues:", data); // Debug 6
     
     afficherTableau(data);
-    afficherGraphique(data);
+    // afficherGraphique(data);
   } catch (error) {
     console.error("Erreur complète:", error); // Debug 7
     alert("Une erreur est survenue. Voir la console pour les détails.");
@@ -233,155 +220,33 @@
 
     // Fonction pour afficher le tableau
     function afficherTableau(data) {
-    const tbody = document.querySelector("#table-interets tbody");
-    const footer = document.getElementById("table-footer");
-    
-    tbody.innerHTML = "";
-    
-    if (!data || data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4">Aucune donnée disponible</td></tr>';
-        footer.style.display = 'none';
+      const tbody = document.querySelector("#table-fonds tbody");
+      tbody.innerHTML = "";
+      
+      if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6">Aucune donnée disponible</td></tr>';
         return;
-    }
+      }
 
-    let totalRecus = 0;
-    let totalCourus = 0;
-    let totalGeneral = 0;
-
-    data.forEach(ligne => {
-        // Filtre les lignes avec mois null
+      data.forEach(ligne => {
         if (!ligne.mois) return;
         
         const tr = document.createElement("tr");
         tr.innerHTML = `
-            <td>${formatMois(ligne.mois)}</td>
-            <td>${formatMontant(ligne.interets_recus)}</td>
-            <td>${formatMontant(ligne.interets_courus)}</td>
-            <td>${formatMontant(ligne.total_interets)}</td>
+          <td>${formatMois(ligne.mois)}</td>
+          <td>${formatMontant(ligne.fondDebut || 0)}</td>
+          <td>${formatMontant(ligne.prets || 0)}</td>
+          <td>${formatMontant(ligne.Remboursements || 0)}</td>
+          <td>${formatMontant(ligne.fondFin || 0)}</td>
         `;
         tbody.appendChild(tr);
-
-        totalRecus += parseFloat(ligne.interets_recus);
-        totalCourus += parseFloat(ligne.interets_courus);
-        totalGeneral += parseFloat(ligne.total_interets);
-    });
-
-    // Mise à jour des totaux
-    document.getElementById("total-recus").textContent = formatMontant(totalRecus);
-    document.getElementById("total-courus").textContent = formatMontant(totalCourus);
-    document.getElementById("total-general").textContent = formatMontant(totalGeneral);
-    footer.style.display = '';
-}
-
-    // Fonction pour formater l'affichage du mois
-    function formatMois(moisStr) {
-    if (!moisStr) return "Date inconnue"; // Gestion du cas null/undefined
-    
-    const [annee, mois] = moisStr.split('-');
-    const moisNoms = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 
-                     'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
-    return `${moisNoms[parseInt(mois) - 1]} ${annee}`;
-}
-
-
-    // Fonction pour afficher le graphique
-    function afficherGraphique(data) {
-      if (!data || data.length === 0) {
-        if (chart) chart.destroy();
-        return;
-      }
-
-      const ctx = document.getElementById("graphique-interets").getContext("2d");
-      
-      // Destruction du graphique existant
-      if (chart) chart.destroy();
-
-      // Préparation des données
-      const labels = data.map(ligne => formatMois(ligne.mois));
-      const recusData = data.map(ligne => parseFloat(ligne.interets_recus));
-      const courusData = data.map(ligne => parseFloat(ligne.interets_courus));
-      const totauxData = data.map(ligne => parseFloat(ligne.total_interets));
-
-      // Création du graphique
-      chart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: 'Intérêts reçus',
-              data: recusData,
-              backgroundColor: 'rgba(54, 162, 235, 0.7)',
-              borderColor: 'rgba(54, 162, 235, 1)',
-              borderWidth: 1
-            },
-            {
-              label: 'Intérêts courus',
-              data: courusData,
-              backgroundColor: 'rgba(255, 206, 86, 0.7)',
-              borderColor: 'rgba(255, 206, 86, 1)',
-              borderWidth: 1
-            },
-            {
-              label: 'Total intérêts',
-              data: totauxData,
-              backgroundColor: 'rgba(75, 192, 192, 0.7)',
-              borderColor: 'rgba(75, 192, 192, 1)',
-              borderWidth: 1,
-              type: 'line',
-              fill: false
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            title: {
-              display: true,
-              text: 'Évolution des intérêts mensuels',
-              font: {
-                size: 16
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  return context.dataset.label + ': ' + formatMontant(context.raw);
-                }
-              }
-            },
-            legend: {
-              position: 'top',
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: function(value) {
-                  return formatMontant(value);
-                }
-              },
-              title: {
-                display: true,
-                text: 'Montant (Ar)'
-              }
-            },
-            x: {
-              title: {
-                display: true,
-                text: 'Mois'
-              }
-            }
-          }
-        }
       });
     }
 
     // Chargement initial
     document.addEventListener('DOMContentLoaded', function() {
       // Vous pouvez activer ceci si vous voulez un chargement automatique au démarrage
-      // chargerInterets();
+      // chargerFonds();
     });
   </script>
 

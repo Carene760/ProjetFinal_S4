@@ -39,6 +39,7 @@ class Pret {
     try {
         // Préparation de l'appel
         $stmt = $db->prepare("CALL CalculInteretsMensuels(:id_ef, :debut, :fin)");
+
         // Liaison des paramètres
         $stmt->bindParam(':id_ef', $idEf, PDO::PARAM_INT);
         $stmt->bindParam(':debut', $debut, PDO::PARAM_STR);

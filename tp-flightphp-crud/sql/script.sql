@@ -192,3 +192,150 @@ BEGIN
 END //
 
 DELIMITER ;
+
+------------------------------------------------------------
+DELIMITER //
+
+CREATE PROCEDURE GetFondsDisponibles(
+    IN p_id_ef INT,
+    IN p_debut_yyyy_mm VARCHAR(7),
+    IN p_fin_yyyy_mm VARCHAR(7)
+)
+BEGIN
+    -- 🔸 Déclaration des variables en premier
+    DECLARE v_solde_cumulatif DECIMAL(15,2) DEFAULT 0;
+    DECLARE v_mois_courant VARCHAR(7);
+    DECLARE v_montant_initial DECIMAL(15,2);
+    DECLARE v_prets_accordes DECIMAL(15,2);
+    DECLARE v_remboursements DECIMAL(15,2);
+    DECLARE v_fin_curseur BOOLEAN DEFAULT FALSE;
+    DECLARE v_premier_mois BOOLEAN DEFAULT TRUE;
+
+    DECLARE p_debut DATE;
+    DECLARE p_fin DATE;
+
+    -- 🔸 Déclaration du curseur et du handler
+    DECLARE cur CURSOR FOR 
+        SELECT mois FROM temp_fonds_mensuels ORDER BY mois;
+
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_fin_curseur = TRUE;
+
+    -- 🔸 Conversion des paramètres en dates complètes
+    SET p_debut = STR_TO_DATE(CONCAT(p_debut_yyyy_mm, '-01'), '%Y-%m-%d');
+    SET p_fin = LAST_DAY(STR_TO_DATE(CONCAT(p_fin_yyyy_mm, '-01'), '%Y-%m-%d'));
+
+    -- 🔸 Création table temporaire
+    DROP TEMPORARY TABLE IF EXISTS temp_fonds_mensuels;
+    CREATE TEMPORARY TABLE temp_fonds_mensuels (
+        mois VARCHAR(7),
+        montant_initial DECIMAL(15,2),
+        prets_accordes DECIMAL(15,2),
+        remboursements DECIMAL(15,2),
+        fonds_disponibles DECIMAL(15,2),
+        PRIMARY KEY (mois)
+    );
+
+    -- 🔸 Remplissage des données mensuelles brutes
+    INSERT INTO temp_fonds_mensuels (mois, montant_initial, prets_accordes, remboursements, fonds_disponibles)
+    SELECT 
+        mois,
+        SUM(montant_initial),
+        SUM(prets_accordes),
+        SUM(remboursements),
+        0
+    FROM (
+        -- Mouvements de fonds initiaux
+        SELECT 
+            DATE_FORMAT(f.date_mouvement, '%Y-%m') AS mois,
+            SUM(CASE WHEN f.type_mouvement = 0 THEN f.montant ELSE 0 END) AS montant_initial,
+            0 AS prets_accordes,
+            0 AS remboursements
+        FROM fond f
+        WHERE f.etablissement_id = p_id_ef
+          AND f.date_mouvement BETWEEN p_debut AND p_fin
+        GROUP BY mois
+
+        UNION ALL
+
+        -- Prêts accordés
+        SELECT 
+            DATE_FORMAT(p.date_debut, '%Y-%m') AS mois,
+            0 AS montant_initial,
+            SUM(p.montant) AS prets_accordes,
+            0 AS remboursements
+        FROM pret p
+        WHERE p.id_ef = p_id_ef
+          AND p.date_debut BETWEEN p_debut AND p_fin
+        GROUP BY mois
+
+        UNION ALL
+
+        -- Remboursements reçus
+        SELECT 
+            DATE_FORMAT(er.date_paiement_effectif, '%Y-%m') AS mois,
+            0 AS montant_initial,
+            0 AS prets_accordes,
+            SUM(er.part_capital + er.part_interet) AS remboursements
+        FROM echeance_remboursement er
+        JOIN pret p ON er.id_pret = p.id_pret
+        WHERE p.id_ef = p_id_ef
+          AND er.statut_paiement = 'payé'
+          AND er.date_paiement_effectif BETWEEN p_debut AND p_fin
+        GROUP BY mois
+    ) AS data
+    GROUP BY mois
+    ORDER BY mois;
+
+    -- 🔸 Calcul des fonds disponibles mensuels
+    OPEN cur;
+
+    boucle_mois: LOOP
+        FETCH cur INTO v_mois_courant;
+        IF v_fin_curseur THEN
+            LEAVE boucle_mois;
+        END IF;
+
+        IF v_premier_mois THEN
+            SELECT montant_initial, prets_accordes, remboursements 
+            INTO v_montant_initial, v_prets_accordes, v_remboursements
+            FROM temp_fonds_mensuels 
+            WHERE mois = v_mois_courant;
+
+            SET v_solde_cumulatif = v_montant_initial - v_prets_accordes + v_remboursements;
+            SET v_premier_mois = FALSE;
+        ELSE
+            SELECT prets_accordes, remboursements 
+            INTO v_prets_accordes, v_remboursements
+            FROM temp_fonds_mensuels 
+            WHERE mois = v_mois_courant;
+
+            SET v_montant_initial = v_solde_cumulatif;
+            SET v_solde_cumulatif = v_solde_cumulatif - v_prets_accordes + v_remboursements;
+
+            UPDATE temp_fonds_mensuels 
+            SET montant_initial = v_montant_initial
+            WHERE mois = v_mois_courant;
+        END IF;
+
+        UPDATE temp_fonds_mensuels 
+        SET fonds_disponibles = v_solde_cumulatif
+        WHERE mois = v_mois_courant;
+    END LOOP boucle_mois;
+
+    CLOSE cur;
+
+    -- 🔸 Résultat final
+    SELECT 
+        mois,
+        montant_initial AS "fondDebut",
+        prets_accordes AS "prets",
+        remboursements AS "Remboursements",
+        fonds_disponibles AS "fondFin"
+    FROM temp_fonds_mensuels
+    ORDER BY mois;
+
+    -- 🔸 Nettoyage
+    DROP TEMPORARY TABLE IF EXISTS temp_fonds_mensuels;
+END //
+
+DELIMITER ;
