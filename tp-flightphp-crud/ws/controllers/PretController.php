@@ -3,6 +3,7 @@ require_once __DIR__ . '/../models/Pret.php';
 require_once __DIR__ . '/../models/Fond.php';
 require_once __DIR__ . '/../models/TypePret.php';
 require_once __DIR__ . '/../models/Remboursement.php';
+require_once __DIR__ . '/../models/Simulation.php';
 
 
 class PretController {
@@ -212,6 +213,22 @@ class PretController {
             Flight::json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
+
+    public static function ajouterSimulation($id) {
+        try {
+            $simulationId = Simulation::ajouterSimulation($id);
+            Flight::json([
+                'success' => true,
+                'message' => 'Simulation enregistrée',
+                'id_simulation' => $simulationId
+            ]);
+        } catch (Exception $e) {
+            Flight::json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
+        }
+    }
     
     private static function updateEstValide($id) {
         $db = getDB();
@@ -259,6 +276,11 @@ class PretController {
     
             Remboursement::insert($data);
         }
+    }
+
+    public static function getSimulationsByPret($id) {
+        $simulations = Simulation::getByPretId($id);
+        Flight::json($simulations);
     }
     
     private static function calculerAnnuite($montant, $tauxAnnuel, $duree, $frequence) {
