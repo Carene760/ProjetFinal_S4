@@ -1,12 +1,8 @@
 <?php
-
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE");
-header("Access-Control-Allow-Headers: Content-Type");
-
 require 'vendor/autoload.php';
 require 'db.php';
 require 'routes/pret_routes.php';
+require 'routes/type_pret_routes.php';
 
 
 Flight::route('POST /ajout-fond', function() {

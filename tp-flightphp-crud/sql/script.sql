@@ -3,7 +3,7 @@ USE ProjetFinal_S4;
 
 -- Table client
 CREATE TABLE client (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
     prenom VARCHAR(100) NOT NULL,
     email VARCHAR(150),
@@ -12,9 +12,19 @@ CREATE TABLE client (
     date_inscription DATE DEFAULT CURRENT_DATE
 );
 
--- Table établissement financier
+-- Table type_pret
+CREATE TABLE type_pret (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL,
+    taux_interet DECIMAL(5,2) NOT NULL, -- exemple : 12.5%
+    duree_max INT NOT NULL,             -- en mois
+    montant_max DECIMAL(18,2) NOT NULL,
+    montant_min DECIMAL(18,2) NOT NULL 
+);
+
+-- Table etablissement_financier
 CREATE TABLE etablissement_financier (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE
 );
@@ -22,7 +32,7 @@ CREATE TABLE etablissement_financier (
 -- Table fond
 CREATE TABLE fond (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    etablissement_id INT NOT NULL,
+    etablissement_id INT UNSIGNED NOT NULL,
     date_mouvement DATE DEFAULT CURRENT_DATE,
     montant DECIMAL(18,2) NOT NULL,
     type_mouvement TINYINT(1) NOT NULL, -- 0 = ENTREE, 1 = SORTIE
@@ -31,17 +41,22 @@ CREATE TABLE fond (
         ON DELETE CASCADE
 );
 
+CREATE TABLE echeance_remboursement (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_pret INT NOT NULL,
+    mois_annee DATE NOT NULL,
+    montant_total DECIMAL(15,2),
+    part_interet DECIMAL(15,2),
+    part_capital DECIMAL(15,2),
+    statut_paiement ENUM('non payé', 'payé', 'en retard') DEFAULT 'non payé',
+    date_paiement_effectif DATE,
+    FOREIGN KEY (id_pret) REFERENCES pret(id_pret)
+);
+ALTER TABLE echeance_remboursement ADD COLUMN rassurance DECIMAL(15,2) DEFAULT 0.00;
+
 -- données initiales établissement
 INSERT INTO etablissement_financier (nom, email)
 VALUES ('EF', 'ef@email.com');
-
--- Table type_pret
-CREATE TABLE type_pret (
-    id_type INT AUTO_INCREMENT PRIMARY KEY,
-    nom_type VARCHAR(100) NOT NULL,
-    taux_interet DECIMAL(5,2) NOT NULL, -- en %
-    duree_max INT NOT NULL              -- en mois
-);
 
 -- Table prêt
 CREATE TABLE pret (
@@ -58,7 +73,7 @@ CREATE TABLE pret (
     est_valide BOOLEAN DEFAULT FALSE,
     delai_mois INT DEFAULT 0,
     CONSTRAINT fk_client FOREIGN KEY (id_client) REFERENCES client(id),
-    CONSTRAINT fk_type FOREIGN KEY (id_type) REFERENCES type_pret(id),
+    CONSTRAINT fk_type FOREIGN KEY (id_type) REwFERENCES type_pret(id),
     CONSTRAINT fk_ef FOREIGN KEY (id_ef) REFERENCES etablissement_financier(id)
 );
 
@@ -76,10 +91,10 @@ CREATE TABLE echeance_remboursement (
 
 
 -- données initiales type_pret
-INSERT INTO type_pret (nom_type, taux_interet, duree_max) VALUES
-('Prêt immobilier', 6.50, 240),     -- 20 ans
-('Prêt automobile', 5.00, 60),      -- 5 ans
-('Prêt personnel', 8.00, 36);       -- 3 ans
+INSERT INTO type_pret (nom, taux_interet, duree_max, montant_max, montant_min) VALUES
+('Prêt immobilier', 6.50, 240, 500000000.00, 10000000.00),     -- 20 ans
+('Prêt automobile', 5.00, 60, 100000000.00, 2000000.00),       -- 5 ans
+('Prêt personnel', 8.00, 36, 50000000.00, 1000000.00);         -- 3 ans
 
 -- données initiales client
 INSERT INTO client (nom, prenom, email, telephone, date_naissance) VALUES

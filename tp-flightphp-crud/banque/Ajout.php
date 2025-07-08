@@ -61,7 +61,7 @@
 </div>
 
 <script>
-  const apiBase = "http://localhost/ProjetFinal_S4/tp-flightphp-crud/ws";
+  const apiBase = "http://localhost/S4/ProjetFinal_S4_/tp-flightphp-crud/ws";
 
   function ajouterFond(event) {
     event.preventDefault();

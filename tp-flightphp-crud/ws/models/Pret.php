@@ -17,8 +17,8 @@ class Pret {
 
     public static function create($data) {
         $db = getDB();
-        $stmt = $db->prepare("INSERT INTO pret (id_client, id_type, id_ef, montant, duree, date_debut, date_fin, frequence_remboursement, statut) 
-                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $db->prepare("INSERT INTO pret (id_client, id_type, id_ef, montant, duree, date_debut, frequence_remboursement, statut, pourcentage_assurance, delai_mois, est_valide) 
+                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
         $stmt->execute([
             $data->id_client, 
             $data->id_type, 
@@ -26,14 +26,14 @@ class Pret {
             $data->montant, 
             $data->duree, 
             $data->date_debut, 
-            $data->date_fin, 
             $data->frequence_remboursement, 
-            $data->statut ?? 'en cours'
+            $data->statut ?? 'en cours',
+            $data->pourcentage_assurance ?? 0.00,
+            $data->delai_mois ?? 0,
+            $data->est_valide ?? false
         ]);
         return $db->lastInsertId();
     }
-
-
 
     public static function update($id, $data) {
         $db = getDB();
@@ -44,9 +44,11 @@ class Pret {
             montant = ?, 
             duree = ?, 
             date_debut = ?, 
-            date_fin = ?, 
             frequence_remboursement = ?, 
-            statut = ? 
+            statut = ?,
+            pourcentage_assurance = ?,
+            delai_mois = ?,
+            est_valide = ?
             WHERE id_pret = ?");
         $stmt->execute([
             $data->id_client, 
@@ -54,10 +56,12 @@ class Pret {
             $data->id_ef, 
             $data->montant, 
             $data->duree, 
-            $data->date_debut, 
-            $data->date_fin, 
+            $data->date_debut,
             $data->frequence_remboursement, 
             $data->statut, 
+            $data->pourcentage_assurance ?? 0.00,
+            $data->delai_mois ?? 0,
+            $data->est_valide ?? false,
             $id
         ]);
     }
@@ -68,21 +72,18 @@ class Pret {
         $stmt->execute([$id]);
     }
 
-    public static function getByIdWithDetails($id) {
+    public static function getFondActuel() {
         $db = getDB();
         $stmt = $db->prepare("
-            SELECT p.*, 
-                   t.nom_type, t.taux_interet,
-                   c.nom AS client_nom,
-                   ef.nom AS etablissement_nom
-            FROM pret p
-            JOIN type_pret t ON p.id_type = t.id_type
-            JOIN client c ON p.id_client = c.id
-            JOIN etablissement_financier ef ON p.id_ef = ef.id
-            WHERE p.id_pret = ?
+            SELECT
+            COALESCE(SUM(CASE WHEN type_mouvement = 0 THEN montant ELSE 0 END), 0) -
+            COALESCE(SUM(CASE WHEN type_mouvement = 1 THEN montant ELSE 0 END), 0) AS fond_actuel
+            FROM fond
+            WHERE etablissement_id = 1
         ");
-        $stmt->execute([$id]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->execute();
+        $result = $stmt->fetch(PDO::FETCH_ASSOC); // Récupération du résultat
+        return $result['fond_actuel'] ?? 0; // Retourne 0 si aucun résultat
     }
 
     function genererEcheancesMensuellesAnnuitesConstantes(PDO $pdo, $id_pret) {
