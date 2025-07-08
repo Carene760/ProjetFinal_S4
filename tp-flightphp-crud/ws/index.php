@@ -1,9 +1,19 @@
 <?php
+
+header("Access-Control-Allow-Origin: *");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE");
+header("Access-Control-Allow-Headers: Content-Type");
+
 require 'vendor/autoload.php';
 require 'db.php';
 require 'routes/pret_routes.php';
+<<<<<<< Updated upstream
 require 'routes/type_pret_routes.php';
 require 'routes/fonds_routes.php';
+=======
+require 'PretService.php';
+require 'routes/echeance_routes.php';
+>>>>>>> Stashed changes
 
 
 Flight::route('POST /ajout-fond', function() {
@@ -25,6 +35,9 @@ Flight::route('POST /ajout-fond', function() {
 
     Flight::json(['message' => 'Fond ajouté avec succès']);
 });
+
+
+
 
 Flight::route('GET /fond-actuel', function () {
     $db = getDB();
@@ -115,5 +128,14 @@ Flight::route('GET /fond-actuel', function () {
 
     Flight::json(['fond_actuel' => $result['fond_actuel']]);
 });
+
+
 
 Flight::start();
+
+
+
+
+
+
+
