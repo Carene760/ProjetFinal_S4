@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Détails du Prêt</title>
+    <link rel="stylesheet" href="style44.css">
+
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .section { margin-bottom: 30px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .total-row { font-weight: bold; background-color: #e6f7ff; }
+        .delai-row { background-color: #fff2e6; }
+        button { padding: 8px 15px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+        .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .info-card { border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+        #generer-pdf { background-color: #2196F3; margin-left: 10px; }
+        #generer-pdf:hover { background-color: #0b7dda; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+    <h1>Détails du Prêt #<span id="pret-id"></span></h1>
+    
+    <div class="info-grid">
+        <div class="info-card">
+            <h2>Informations de base</h2>
+            <p><strong>Client:</strong> <span id="client-id"></span></p>
+            <p><strong>Type de prêt:</strong> <span id="type-pret"></span></p>
+            <p><strong>Montant:</strong> <span id="montant"></span> €</p>
+            <p><strong>Durée:</strong> <span id="duree"></span> mois</p>
+            <p><strong>Date de début:</strong> <span id="date-debut"></span></p>
+            <p><strong>Date de fin estimée:</strong> <span id="date-fin"></span></p>
+        </div>
+        
+        <div class="info-card">
+            <h2>Conditions financières</h2>
+            <p><strong>Fréquence de remboursement:</strong> <span id="frequence"></span></p>
+            <p><strong>Taux d'intérêt:</strong> <span id="taux-interet"></span>%</p>
+            <p><strong>Assurance:</strong> <span id="assurance-percent"></span>%</p>
+            <p><strong>Période de délai:</strong> <span id="delai-mois"></span> mois</p>
+            <p><strong>Statut:</strong> <span id="statut"></span></p>
+            <p><strong>Validé:</strong> <span id="est-valide"></span></p>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>Synthèse financière</h2>
+        <div class="info-grid">
+            <div class="info-card">
+                <p><strong>Annuité constante:</strong> <span id="annuite"></span> €</p>
+                <p><strong>Assurance par période:</strong> <span id="assurance-montant"></span> €</p>
+            </div>
+            <div class="info-card">
+                <p><strong>Total intérêts:</strong> <span id="total-interets"></span> €</p>
+                <p><strong>Total assurance:</strong> <span id="total-assurance"></span> €</p>
+                <p><strong>Montant total à rembourser:</strong> <span id="montant-total"></span> €</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>Tableau d'amortissement</h2>
+        <table id="amortissement">
+            <thead>
+                <tr>
+                    <th>Période</th>
+                    <th>Date</th>
+                    <th>Capital</th>
+                    <th>Intérêt</th>
+                    <th>Assurance</th>
+                    <th>Montant à payer</th>
+                    <th>Capital restant</th>
+                </tr>
+            </thead>
+            <tbody id="amortissement-body"></tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="2">Totaux</td>
+                    <td id="total-capital"></td>
+                    <td id="total-interets-table"></td>
+                    <td id="total-assurance-table"></td>
+                    <td id="total-paiements"></td>
+                    <td>-</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- Ajoutez ce bouton près des autres boutons -->
+<div class="action-buttons">
+    <button id="valider-pret">Valider le prêt</button>
+    <button id="generer-pdf" style="background-color: #2196F3;">Générer PDF</button>
+    <button id="sauvegarder-simulation" style="background-color: #FF9800; display: none;">Sauvegarder la simulation</button>
+</div>
+   
+    
+    <script>
+        // Configuration de l'API
+        const apiBase = "/tp-flightphp-crud/ws";
+        
+        // Récupérer l'ID du prêt depuis l'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const pretId = urlParams.get('id');
+        
+        if (!pretId) {
+            alert("Aucun ID de prêt spécifié");
+            window.location.href = "Pret.html";
+        }
+        
+        // Afficher l'ID
+        document.getElementById('pret-id').textContent = pretId;
+        
+        // Variable globale pour stocker les données du prêt
+        let pretData = null;
+        
+        // Fonction AJAX générique
+        function ajax(method, url, data, callback) {
+            const xhr = new XMLHttpRequest();
+            xhr.open(method, apiBase + url, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        callback(JSON.parse(xhr.responseText));
+                    } else {
+                        console.error("Erreur:", xhr.responseText);
+                        alert("Erreur lors de la requête : " + xhr.responseText);
+                    }
+                }
+            };
+            xhr.send(data ? JSON.stringify(data) : null);
+        }
+        
+        // Charger les données du prêt
+        function chargerDetailsPret() {
+            ajax("GET", `/prets/${pretId}/details`, null, (data) => {
+                console.log("Données reçues:", data);
+                pretData = data; // Stocker les données
+                afficherDetailsPret(data);
+            });
+        }
+        
+        function afficherDetailsPret(data) {
+            console.log("Affichage des détails:", data);
+            
+            if (!data.pret || !data.type_pret) {
+                console.error("Structure de données invalide:", data);
+                alert("Erreur: Structure de données invalide");
+                return;
+            }
+            
+            // Informations de base
+            document.getElementById('client-id').textContent = data.pret.id_client || 'N/A';
+            document.getElementById('type-pret').textContent = data.type_pret.nom || 'N/A';
+            document.getElementById('montant').textContent = data.pret.montant ? parseFloat(data.pret.montant).toFixed(2) : '0.00';
+            document.getElementById('duree').textContent = data.pret.duree || 'N/A';
+            document.getElementById('date-debut').textContent = data.date_debut || data.pret.date_debut || 'N/A';
+            document.getElementById('date-fin').textContent = data.date_fin || 'N/A';
+            document.getElementById('frequence').textContent = data.pret.frequence_remboursement || 'N/A';
+            document.getElementById('taux-interet').textContent = data.type_pret.taux_interet || '0';
+            document.getElementById('assurance-percent').textContent = data.pret.pourcentage_assurance || '0';
+            document.getElementById('delai-mois').textContent = data.pret.delai_mois || '0';
+            document.getElementById('statut').textContent = data.pret.statut || 'N/A';
+            document.getElementById('est-valide').textContent = data.pret.est_valide ? 'Oui' : 'Non';
+            
+            // Synthèse financière
+            document.getElementById('annuite').textContent = data.annuite ? parseFloat(data.annuite).toFixed(2) : '0.00';
+            document.getElementById('assurance-montant').textContent = data.assurance ? parseFloat(data.assurance).toFixed(2) : '0.00';
+            
+            // Calculs des totaux
+            let totalInterets = 0;
+            let totalAssurance = 0;
+            if (data.tableau_amortissement && Array.isArray(data.tableau_amortissement)) {
+                totalInterets = data.tableau_amortissement.reduce((sum, l) => sum + (parseFloat(l.interet) || 0), 0);
+                totalAssurance = data.tableau_amortissement.reduce((sum, l) => sum + (parseFloat(l.assurance) || 0), 0);
+            }
+            
+            document.getElementById('total-interets').textContent = totalInterets.toFixed(2);
+            document.getElementById('total-assurance').textContent = totalAssurance.toFixed(2);
+            document.getElementById('montant-total').textContent = data.montant_total ? parseFloat(data.montant_total).toFixed(2) : '0.00';
+            
+            // Tableau d'amortissement
+            const tbody = document.getElementById('amortissement-body');
+            tbody.innerHTML = '';
+            
+            if (data.tableau_amortissement && Array.isArray(data.tableau_amortissement)) {
+                data.tableau_amortissement.forEach(ligne => {
+                    const tr = document.createElement('tr');
+                    if (parseFloat(ligne.capital) === 0) tr.classList.add('delai-row');
+                    
+                    tr.innerHTML = `
+                        <td>${ligne.periode || 'N/A'}</td>
+                        <td>${ligne.date || 'N/A'}</td>
+                        <td>${(parseFloat(ligne.capital) || 0).toFixed(2)}</td>
+                        <td>${(parseFloat(ligne.interet) || 0).toFixed(2)}</td>
+                        <td>${(parseFloat(ligne.assurance) || 0).toFixed(2)}</td>
+                        <td>${(parseFloat(ligne.montant_paye) || 0).toFixed(2)}</td>
+                        <td>${(parseFloat(ligne.capital_restant) || 0).toFixed(2)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+            
+            // Totaux
+            document.getElementById('total-capital').textContent = data.pret.montant ? parseFloat(data.pret.montant).toFixed(2) : '0.00';
+            document.getElementById('total-interets-table').textContent = totalInterets.toFixed(2);
+            document.getElementById('total-assurance-table').textContent = totalAssurance.toFixed(2);
+            document.getElementById('total-paiements').textContent = data.montant_total ? parseFloat(data.montant_total).toFixed(2) : '0.00';
+            
+            // Bouton valider
+            const validerBtn = document.getElementById('valider-pret');
+            if (data.pret.est_valide == 1 || data.pret.est_valide === true) {
+                validerBtn.disabled = true;
+                validerBtn.textContent = 'Prêt déjà validé';
+                validerBtn.style.backgroundColor = '#cccccc';
+            } else {
+                validerBtn.onclick = validerPret;
+            }
+            const simulerBtn = document.getElementById('sauvegarder-simulation');
+            if (data.pret.est_valide) {
+                simulerBtn.style.display = 'none';
+            } else {
+                // Vérifier si une simulation existe déjà pour ce prêt
+                ajax("GET", `/prets/${pretId}/simulations`, null, (simulations) => {
+                    if (simulations.length > 0) {
+                        simulerBtn.disabled = true;
+                        simulerBtn.textContent = 'Simulation déjà enregistrée';
+                        simulerBtn.style.backgroundColor = '#cccccc';
+                    } else {
+                        simulerBtn.style.display = 'inline-block';
+                        simulerBtn.onclick = sauvegarderSimulation;
+                    }
+                });
+            }
+
+        }
+        
+        function validerPret() {
+            if (!confirm("Voulez-vous vraiment valider ce prêt ? Cette action est irréversible.")) return;
+            
+            ajax("POST", `/prets/${pretId}/valider`, null, (data) => {
+                if (data.success) {
+                    alert('Prêt validé avec succès !');
+                    chargerDetailsPret();
+                } else {
+                    alert("Erreur: " + (data.message || 'Erreur inconnue'));
+                }
+            });
+        }
+
+        function sauvegarderSimulation() {
+          if (!confirm("Voulez-vous enregistrer cette simulation ?")) return;
+
+          const btn = document.getElementById('sauvegarder-simulation');
+          btn.disabled = true;
+          btn.textContent = 'Simulation enregistrée';
+          btn.style.backgroundColor = '#cccccc';
+
+          ajax("POST", `/prets/${pretId}/simulation`, null, (data) => {
+              if (!data.success) {
+                  btn.disabled = false;
+                  btn.textContent = 'Sauvegarder la simulation';
+                  btn.style.backgroundColor = '#FF9800';
+                  alert("Erreur: " + data.message);
+              }
+          });
+      }
+        
+        function genererPDF() {
+            if (!pretData) {
+                alert("Veuillez patienter pendant le chargement des données");
+                return;
+            }
+
+            const btn = document.getElementById('generer-pdf');
+            const originalText = btn.textContent;
+            btn.textContent = 'Génération en cours...';
+            btn.disabled = true;
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'pt', 'a4');
+            const margin = 40;
+            let y = margin;
+            
+            // Titre
+            pdf.setFontSize(18);
+            pdf.text(`Détails du Prêt #${pretId}`, margin, y);
+            y += 30;
+
+            // Informations de base
+            pdf.setFontSize(12);
+            const col1 = margin;
+            const col2 = pdf.internal.pageSize.width / 2;
+            
+            // Colonne 1
+            pdf.text(`Client: ${document.getElementById('client-id').textContent}`, col1, y);
+            pdf.text(`Type de prêt: ${document.getElementById('type-pret').textContent}`, col1, y + 20);
+            pdf.text(`Montant: ${document.getElementById('montant').textContent} €`, col1, y + 40);
+            pdf.text(`Durée: ${document.getElementById('duree').textContent} mois`, col1, y + 60);
+            pdf.text(`Date de début: ${document.getElementById('date-debut').textContent}`, col1, y + 80);
+            pdf.text(`Date de fin: ${document.getElementById('date-fin').textContent}`, col1, y + 100);
+            
+            // Colonne 2
+            pdf.text(`Fréquence: ${document.getElementById('frequence').textContent}`, col2, y);
+            pdf.text(`Taux d'intérêt: ${document.getElementById('taux-interet').textContent}%`, col2, y + 20);
+            pdf.text(`Assurance: ${document.getElementById('assurance-percent').textContent}%`, col2, y + 40);
+            pdf.text(`Période de délai: ${document.getElementById('delai-mois').textContent} mois`, col2, y + 60);
+            pdf.text(`Statut: ${document.getElementById('statut').textContent}`, col2, y + 80);
+            pdf.text(`Validé: ${document.getElementById('est-valide').textContent}`, col2, y + 100);
+            
+            y += 130;
+
+            // Synthèse financière
+            pdf.setFontSize(14);
+            pdf.text('Synthèse financière', margin, y);
+            y += 20;
+            
+            pdf.setFontSize(12);
+            pdf.text(`Annuité constante: ${document.getElementById('annuite').textContent} €`, margin, y);
+            pdf.text(`Assurance par période: ${document.getElementById('assurance-montant').textContent} €`, margin, y + 20);
+            pdf.text(`Total intérêts: ${document.getElementById('total-interets').textContent} €`, margin, y + 40);
+            pdf.text(`Total assurance: ${document.getElementById('total-assurance').textContent} €`, margin, y + 60);
+            pdf.text(`Montant total à rembourser: ${document.getElementById('montant-total').textContent} €`, margin, y + 80);
+            
+            y += 110;
+
+            // Tableau d'amortissement
+            pdf.setFontSize(14);
+            pdf.text('Tableau d\'amortissement', margin, y);
+            y += 20;
+            
+            // En-têtes du tableau
+            const headers = ["Période", "Date", "Capital", "Intérêt", "Assurance", "Montant", "Reste"];
+            
+            // Données du tableau
+            const tableData = pretData.tableau_amortissement.map(row => [
+                row.periode,
+                row.date,
+                parseFloat(row.capital).toFixed(2),
+                parseFloat(row.interet).toFixed(2),
+                parseFloat(row.assurance).toFixed(2),
+                parseFloat(row.montant_paye).toFixed(2),
+                parseFloat(row.capital_restant).toFixed(2)
+            ]);
+            
+            // Générer le tableau
+            pdf.autoTable({
+                head: [headers],
+                body: tableData,
+                startY: y,
+                margin: { left: margin },
+                styles: { fontSize: 8, cellPadding: 3 },
+                headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+                alternateRowStyles: { fillColor: [240, 240, 240] }
+            });
+
+            // Sauvegarder le PDF
+            pdf.save(`details_pret_${pretId}.pdf`);
+            
+            // Réactiver le bouton
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }
+
+        // Écouteurs d'événements
+        document.getElementById('generer-pdf').addEventListener('click', genererPDF);
+        
+        // Charger les données au démarrage
+        chargerDetailsPret();
+    </script>
+</body>
+</html>
