@@ -52,6 +52,7 @@ CREATE TABLE echeance_remboursement (
     date_paiement_effectif DATE,
     FOREIGN KEY (id_pret) REFERENCES pret(id_pret)
 );
+ALTER TABLE echeance_remboursement ADD COLUMN rassurance DECIMAL(15,2) DEFAULT 0.00;
 
 -- données initiales établissement
 INSERT INTO etablissement_financier (nom, email)
